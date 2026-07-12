@@ -548,16 +548,16 @@ permission:
 
 **Files:** Create `README.md` (English), `README_RU.md` (Russian).
 
-- [ ] назначение, таблица уровней, floor; **модель угроз — только A** (ссылка на ADR)
-- [ ] **раздел «Hardening»**: для защиты от вредоносного/injection — запускать opencode в
+- [x] назначение, таблица уровней, floor; **модель угроз — только A** (ссылка на ADR)
+- [x] **раздел «Hardening»**: для защиты от вредоносного/injection — запускать opencode в
       OS-sandbox (композиция); guardrails — не security-граница
-- [ ] установка: **основной путь — `install.sh` + overlay через `OPENCODE_CONFIG`**;
+- [x] установка: **основной путь — `install.sh` + overlay через `OPENCODE_CONFIG`**;
       fallback agents-only (с оговоркой про build/plan)
-- [ ] раздел «Совместимость»: min + проверенная версии opencode (Task 1)
-- [ ] раздел «Известные ограничения»: grep/glob, bash-обходы, `--auto`/`always`
-- [ ] `README_RU.md` — перевод, те же разделы; взаимные ссылки вверху
-- [ ] `tests/test_readme_links.py` — ссылки/пути в обоих README резолвятся (success + error-фикстура)
-- [ ] `python -m unittest discover tests` — успех
+- [x] раздел «Совместимость»: min + проверенная версии opencode (Task 1)
+- [x] раздел «Известные ограничения»: grep/glob, bash-обходы, `--auto`/`always`
+- [x] `README_RU.md` — перевод, те же разделы; взаимные ссылки вверху
+- [x] `tests/test_readme_links.py` — ссылки/пути в обоих README резолвятся (success + error-фикстура)
+- [x] `python -m unittest discover tests` — успех
 
 ### Task 8: Приёмка — включая ОБЯЗАТЕЛЬНЫЙ runtime smoke-gate
 
