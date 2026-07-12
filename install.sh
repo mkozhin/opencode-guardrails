@@ -79,23 +79,28 @@ reject_irregular_dest() {
 }
 
 # atomic_install SRC DST — copy SRC into a temp file in DST's OWN directory, then
-# rename it over DST. `mv` replaces the directory entry atomically and never
-# follows a symlink sitting at DST, so a symlink swapped in during the window
-# between reject_irregular_dest and the write cannot be dereferenced to clobber
-# its target. This closes the TOCTOU that a plain `rm -f; cp` or a bare `cp`
-# (both of which dereference a symlinked DST) would leave open.
+# rename it over DST. `mv -fT` (--no-target-directory) replaces the path itself
+# atomically and never descends into a directory (real or symlinked) sitting at
+# DST, so a symlink-to-a-directory swapped in during the window between
+# reject_irregular_dest and the write cannot make mv drop the file INSIDE it.
+# This closes the accidental cases that a plain `rm -f; cp` or a bare `cp` (both
+# of which dereference a symlinked DST) would leave open. NOTE: the installer
+# targets a NON-ADVERSARIAL filesystem (model-A threat model); it is not hardened
+# against an attacker actively racing the rename.
 atomic_install() {
     local src="$1" dst="$2" dir tmp
     dir="$(dirname -- "$dst")"
     tmp="$(mktemp "$dir/.guardrails-install.XXXXXX")" || return 1
-    if ! cp -- "$src" "$tmp"; then
+    # On ANY failure (cp/chmod/mv) remove the staged temp so no orphaned
+    # .guardrails-install.* file is left behind. `chmod +r` matches a normal `cp`
+    # result (respect umask) rather than mktemp's 0600, so installed files are not
+    # surprisingly private.
+    if ! { cp -- "$src" "$tmp" \
+        && chmod +r -- "$tmp" \
+        && mv -fT -- "$tmp" "$dst"; }; then
         rm -f -- "$tmp"
         return 1
     fi
-    # Match a normal `cp` result (respect umask) rather than mktemp's 0600, so
-    # installed files are not surprisingly private.
-    chmod +r -- "$tmp"
-    mv -f -- "$tmp" "$dst"
 }
 
 # Parse arguments.

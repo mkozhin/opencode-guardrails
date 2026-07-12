@@ -11,7 +11,7 @@ exist and the whole suite is green. The two test families are:
     the committed agent files and assert their behaviour.
 
 Authoritative opencode semantics encoded here come from the Task 1 spike on a
-live opencode 1.17.18 (see the plan's "Корректировки плана по итогам Task 1").
+live opencode 1.17.18 (see the plan's "Plan corrections following Task 1").
 The single most important correction versus the original plan: opencode's
 matcher is a plain anchored regex with ``*`` -> ``.*`` under the dotall flag,
 so ``*`` CROSSES ``/``. One ``*.pem`` therefore matches both ``app.pem`` and
@@ -458,7 +458,7 @@ class TestOrderInvariant(unittest.TestCase):
             )
             bash_slices.append(
                 slice_between(
-                    raw, '"git push*": "ask"', '"tail *.env.example *": "allow"'
+                    raw, '"git push*": "ask"', '"tail *.key *": "ask"'
                 )
             )
         self.assertEqual(read_slices[0], read_slices[1])
@@ -562,6 +562,12 @@ _BASH_ASK = (
     # Trailing ` *` (-> `( .*)?`) means a redirect/extra-arg/second-file suffix
     # after the secret name is still caught, not just a bare `cat .env`.
     "cat .env 2>/dev/null", "cat .env README.md", "head .env -n 5",
+    # No bash `*.env.example` carve-out: a whole-string `allow` rule is gameable
+    # by appending a real secret path (e.g. `cat .env.example .env` would resolve
+    # to allow and read `.env` with no prompt). So the template itself only ASKS
+    # (harmless), and appending a secret still ASKS -- a regression guard.
+    "cat .env.example", "head .env.example", "less .env.example",
+    "tail .env.example", "cat .env.example .env",
 )
 # Commands the floor must NOT over-match (they follow the level's bash "*").
 _BASH_ALLOW = (
@@ -573,10 +579,6 @@ _BASH_ALLOW = (
     # suffixes exclude ordinary files.
     "catalog build", "cat README.md", "cat package.json", "cat notes.md",
     "head -n 5 main.py", "tail -f app.log", "less CHANGELOG.md",
-    # Bash carve-out (mirrors the read floor's `*.env.example` allow, placed
-    # LAST so it overrides the `*.env.*` ask): reading a template must not prompt.
-    "cat .env.example", "head .env.example",
-    "less .env.example", "tail .env.example",
 )
 
 

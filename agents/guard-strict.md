@@ -65,11 +65,7 @@
       "tail *.env *": "ask",
       "tail *.env.* *": "ask",
       "tail *.pem *": "ask",
-      "tail *.key *": "ask",
-      "cat *.env.example *": "allow",
-      "less *.env.example *": "allow",
-      "head *.env.example *": "allow",
-      "tail *.env.example *": "allow"
+      "tail *.key *": "ask"
     },
     "webfetch": "ask",
     "websearch": "ask",
