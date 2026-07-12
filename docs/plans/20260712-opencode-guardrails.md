@@ -536,11 +536,11 @@ permission:
 
 **Files:** Create `.github/workflows/verify.yml`.
 
-- [ ] `on: pull_request` → setup-python → `python -m unittest discover tests`
+- [x] `on: pull_request` → setup-python → `python -m unittest discover tests`
       **+ `bash tests/test_install.sh`** (codex CRITICAL 4 — discover shell-тесты не гоняет)
       + `shellcheck install.sh tests/test_install.sh`
-- [ ] проверка «только stdlib»: тесты идут на чистом setup-python без установки зависимостей
-- [ ] валидность самого `verify.yml` — доверяем парсеру GitHub Actions при запуске
+- [x] проверка «только stdlib»: тесты идут на чистом setup-python без установки зависимостей
+- [x] валидность самого `verify.yml` — доверяем парсеру GitHub Actions при запуске
       (отдельного YAML-линтера не тащим, codex MINOR 3); никакой записи в `main`,
       `contents: write` не требуется
 

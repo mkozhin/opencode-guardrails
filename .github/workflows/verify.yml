@@ -1,0 +1,31 @@
+name: verify
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # No dependency install: the stdlib-only guarantee is demonstrated by
+      # running the suite on a bare setup-python with zero `pip install`.
+      - name: Run unit tests
+        run: python -m unittest discover tests
+
+      # `unittest discover` does not execute the shell test, so run it separately.
+      - name: Run install shell test
+        run: bash tests/test_install.sh
+
+      # shellcheck is preinstalled on GitHub ubuntu-latest runners.
+      - name: Shellcheck
+        run: shellcheck install.sh tests/test_install.sh
