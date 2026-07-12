@@ -505,20 +505,32 @@ permission:
 
 **Files:** Create `install.sh`, `tests/test_install.sh`.
 
-- [ ] копирует `agents/*.md` в `~/.config/opencode/agents/` (`--project` → `.opencode/agents/`)
+- [x] копирует `agents/*.md` в `~/.config/opencode/agents/` (`--project` → `.opencode/agents/`)
       и кладёт overlay-файл в известное место
-- [ ] активация overlay (codex MAJOR 3): для `OPENCODE_CONFIG` скрипт **печатает точную
+      → сделано: агенты копируются в `agent/`-подпапку (не `agents/`) — подтверждено
+      скретч-проверкой: opencode 1.17.18 грузит агентов из `agent/` (singular) и в глобальном
+      конфиге, и в `OPENCODE_CONFIG_DIR`. Global: агенты → `${XDG_CONFIG_HOME:-~/.config}/opencode/agent/`
+      (всегда грузятся → работает agents-only fallback), overlay → drop-in `…/opencode-guardrails/`.
+      `--project`: агенты → `./.opencode/agent/`, overlay → `./.opencode/opencode.json`.
+- [x] активация overlay (codex MAJOR 3): для `OPENCODE_CONFIG` скрипт **печатает точную
       команду** (`export …` + как добавить в профиль), НЕ претендуя, что уже активировал
       (env var в родительский shell из скрипта не пробросить); для `OPENCODE_CONFIG_DIR`
       (если Task 1 подтвердил) — просто копирует файл в drop-in-директорию. Чужой
       `opencode.json` НЕ правит; скрытого редактирования профилей нет
-- [ ] печатает precedence-оговорку: project-конфиг может переопределить overlay (CRITICAL 3)
-- [ ] fallback agents-only задокументирован в выводе (build/plan останутся)
-- [ ] идемпотентность; не перезаписывать чужие одноимённые `.md` без `--force`; понятный вывод
-- [ ] `tests/test_install.sh` success: чистые `HOME`/project во временных каталогах; оба режима
-- [ ] `tests/test_install.sh` error: чужой файл без `--force` → отказ; `--force` перезаписывает;
+      → сделано: global-режим печатает `export OPENCODE_CONFIG_DIR="…"` + `>> ~/.bashrc`-подсказку,
+      явно оговаривает, что профиль НЕ правится и overlay ещё не активен. `--project` пишет overlay
+      в project-слой (активен без env var).
+- [x] печатает precedence-оговорку: project-конфиг может переопределить overlay (CRITICAL 3)
+- [x] fallback agents-only задокументирован в выводе (build/plan останутся)
+- [x] идемпотентность; не перезаписывать чужие одноимённые `.md` без `--force`; понятный вывод
+      → повторный запуск: `unchanged:`; чужой отличающийся файл без `--force` → `refused:` + exit 3,
+      файл не тронут; `--force` перезаписывает.
+- [x] `tests/test_install.sh` success: чистые `HOME`/project во временных каталогах; оба режима
+- [x] `tests/test_install.sh` error: чужой файл без `--force` → отказ; `--force` перезаписывает;
       неизвестный флаг → ненулевой код + usage; отсутствие `agents/` → внятная ошибка
-- [ ] `shellcheck install.sh` чисто; `bash tests/test_install.sh` — успех
+- [x] `shellcheck install.sh` чисто; `bash tests/test_install.sh` — успех
+      → shellcheck 0.10.0: 0 warnings; test_install.sh: 25/25 passed; `python3 -m unittest
+      discover tests`: Ran 32 OK.
 
 ### Task 6: CI — verify.yml (только PR, без записи в main)
 
