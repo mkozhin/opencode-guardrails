@@ -452,13 +452,13 @@ permission:
 
 **Files:** Create `LICENSE`, `.gitignore`, `tests/__init__.py`.
 
-- [ ] git-репозиторий инициализирован (уже есть remote)
-- [ ] `LICENSE` — MIT
-- [ ] `.gitignore` — `__pycache__/`, `*.pyc`, `.venv/` (без `.pytest_cache/` — используем
+- [x] git-репозиторий инициализирован (уже есть remote)
+- [x] `LICENSE` — MIT
+- [x] `.gitignore` — `__pycache__/`, `*.pyc`, `.venv/` (без `.pytest_cache/` — используем
       только `unittest`, codex MINOR 1)
-- [ ] `tests/__init__.py` (пакет для `unittest discover`)
+- [x] `tests/__init__.py` (пакет для `unittest discover`)
 - [x] `AGENTS.md`/`CLAUDE.md`/`CONTEXT.md`/`docs/adr/0001-*` уже на месте
-- [ ] `python -m unittest discover tests` — 0 тестов, без ошибок сбора
+- [x] `python -m unittest discover tests` — 0 тестов, без ошибок сбора
 
 ### Task 3: Тесты артефакта — сначала (tests-first, codex MAJOR 1)
 
