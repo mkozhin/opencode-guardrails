@@ -72,6 +72,8 @@ PROJECT="$WORK/project"
 mkdir -p "$PROJECT"
 out="$(cd "$PROJECT" && bash "$INSTALL" --project 2>&1)"; rc=$?
 check "project: exit 0" "$([ "$rc" -eq 0 ] && echo 0 || echo 1)"
+check "project: reports files installed" \
+    "$(printf '%s' "$out" | grep -q 'installed:' && echo 0 || echo 1)"
 check "project: agents in ./.opencode/agent/" \
     "$([ -f "$PROJECT/.opencode/agent/guard-normal.md" ] && echo 0 || echo 1)"
 check "project: overlay in ./.opencode/opencode.json" \
@@ -97,6 +99,8 @@ check "conflict: non-conflicting agent still installed" \
 # --- Case 5: --force overwrites --------------------------------------------
 out="$(bash "$INSTALL" --force 2>&1)"; rc=$?
 check "force: exit 0" "$([ "$rc" -eq 0 ] && echo 0 || echo 1)"
+check "force: reports differing file overwritten" \
+    "$(printf '%s' "$out" | grep -q 'overwritten:' && echo 0 || echo 1)"
 check "force: differing file overwritten with ours" \
     "$(cmp -s "$REPO_ROOT/agents/guard-normal.md" "$AGENT_DEST/guard-normal.md" && echo 0 || echo 1)"
 

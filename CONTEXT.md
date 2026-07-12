@@ -53,9 +53,10 @@ Glossary for `opencode-guardrails`. Terms only — no implementation details.
   deny patterns above still `deny` (deny is appended later, last-match-wins). Conditional:
   `--auto` or a session-level `always` approval can suppress the prompt.
 - **dangerous_bash** — the *best-effort* floor set on the `bash` tool: matches common
-  direct forms of dangerous commands and secret-reads. opencode matches *parsed*
-  commands (not raw strings), and chaining/obfuscation bypasses it — meaningful
-  against the careless agent, not the adversary.
+  direct forms of dangerous commands and secret-reads. On 1.17.18 opencode matches
+  the *whole raw command string* (the tree-sitter parser is not yet ported), and
+  chaining/obfuscation bypasses it — meaningful against the careless agent, not the
+  adversary.
 
 ## Distribution
 

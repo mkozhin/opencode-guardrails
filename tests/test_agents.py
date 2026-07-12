@@ -1,14 +1,14 @@
-"""Artifact tests for opencode-guardrails (tests-first, Task 3).
+"""Artifact tests for opencode-guardrails (Task 3).
 
-These tests are written BEFORE the three ``agents/guard-*.md`` files and the
-``opencode.json`` overlay exist (Task 4). Consequently:
+These tests were authored tests-first, BEFORE the three ``agents/guard-*.md``
+files and the ``opencode.json`` overlay existed (Task 4). Those artifacts now
+exist and the whole suite is green. The two test families are:
 
   * The ``resolve()`` model unit tests and the frontmatter/overlay validator
-    error-case tests are GREEN immediately (they exercise the in-file helpers
-    against hand-built fixtures, independent of the yet-unwritten artifact).
-  * The order-invariant, real-path-matrix and real-artifact validity tests are
-    intentionally RED (they ERROR with FileNotFoundError) until the agent files
-    exist. That is the expected tests-first state.
+    error-case tests exercise the in-file helpers against hand-built fixtures,
+    independent of the artifact files.
+  * The order-invariant, real-path-matrix and real-artifact validity tests read
+    the committed agent files and assert their behaviour.
 
 Authoritative opencode semantics encoded here come from the Task 1 spike on a
 live opencode 1.17.18 (see the plan's "Корректировки плана по итогам Task 1").
@@ -141,13 +141,13 @@ def validate_overlay(text):
 
 
 # ---------------------------------------------------------------------------
-# Artifact loaders (used by the intentionally-RED tests).
+# Artifact loaders (read the committed guard-*.md files).
 # ---------------------------------------------------------------------------
 
 
 def _read_guard(level):
     path = os.path.join(AGENTS_DIR, "guard-%s.md" % level)
-    with open(path, encoding="utf-8") as fh:  # FileNotFoundError => RED (expected)
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
