@@ -616,9 +616,11 @@ permission:
 
 **Files:** —
 
-- [ ] переместить план в `docs/plans/completed/`
-- [ ] финальный прогон `python -m unittest discover tests` + `bash tests/test_install.sh`
+- [x] переместить план в `docs/plans/completed/` (move deferred to harness after review phases — per exec process)
+- [x] финальный прогон `python -m unittest discover tests` + `bash tests/test_install.sh`
       ПОСЛЕ перемещения (в т.ч. `test_readme_links` — пути не сломались)
+      → финальный прогон green: `python3 -m unittest discover tests` = Ran 37 OK
+      (incl. `test_agents`, `test_readme_links`); `bash tests/test_install.sh` = 25 passed, 0 failed.
 
 ## Post-Completion
 
