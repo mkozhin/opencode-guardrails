@@ -1,5 +1,5 @@
-- [x] прогнать через grill-with-docs
-- [x] прогнать через /improve-codebase-architecture
-- [x] прогнать финальный план с правками через codex
-- [x] после codex прогнать финально planning:plan-review для финальной проверки плана на соглаосванность
+- [x] run through grill-with-docs
+- [x] run through /improve-codebase-architecture
+- [x] run the final plan with edits through codex
+- [x] after codex, run planning:plan-review for a final consistency check of the plan
 - [ ] Run /improve-codebase-architecture once code exists (after Task 3-4): walk install.sh + tests/test_agents.py (resolve() helper) for deepening

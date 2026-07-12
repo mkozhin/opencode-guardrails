@@ -78,6 +78,26 @@ reject_irregular_dest() {
     return 0
 }
 
+# atomic_install SRC DST — copy SRC into a temp file in DST's OWN directory, then
+# rename it over DST. `mv` replaces the directory entry atomically and never
+# follows a symlink sitting at DST, so a symlink swapped in during the window
+# between reject_irregular_dest and the write cannot be dereferenced to clobber
+# its target. This closes the TOCTOU that a plain `rm -f; cp` or a bare `cp`
+# (both of which dereference a symlinked DST) would leave open.
+atomic_install() {
+    local src="$1" dst="$2" dir tmp
+    dir="$(dirname -- "$dst")"
+    tmp="$(mktemp "$dir/.guardrails-install.XXXXXX")" || return 1
+    if ! cp -- "$src" "$tmp"; then
+        rm -f -- "$tmp"
+        return 1
+    fi
+    # Match a normal `cp` result (respect umask) rather than mktemp's 0600, so
+    # installed files are not surprisingly private.
+    chmod +r -- "$tmp"
+    mv -f -- "$tmp" "$dst"
+}
+
 # Parse arguments.
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -122,10 +142,7 @@ install_file() {
             return 0
         fi
         if [ "$FORCE" -eq 1 ]; then
-            # Remove first so cp never dereferences a (concurrently created)
-            # symlink and writes through it to an unrelated target.
-            rm -f "$dst"
-            cp "$src" "$dst"
+            atomic_install "$src" "$dst"
             log "  overwritten: $dst"
             return 0
         fi
@@ -133,7 +150,7 @@ install_file() {
         REFUSED=1
         return 0
     fi
-    cp "$src" "$dst"
+    atomic_install "$src" "$dst"
     log "  installed: $dst"
 }
 
@@ -218,8 +235,7 @@ else
         if cmp -s "$SRC_OVERLAY" "$OVERLAY_DEST"; then
             log "  unchanged: $OVERLAY_DEST"
         elif [ "$FORCE" -eq 1 ]; then
-            rm -f "$OVERLAY_DEST"
-            cp "$SRC_OVERLAY" "$OVERLAY_DEST"
+            atomic_install "$SRC_OVERLAY" "$OVERLAY_DEST"
             log "  overwritten: $OVERLAY_DEST"
         else
             warn "  refused: $OVERLAY_DEST already exists and differs."
@@ -230,7 +246,7 @@ else
             REFUSED=1
         fi
     else
-        cp "$SRC_OVERLAY" "$OVERLAY_DEST"
+        atomic_install "$SRC_OVERLAY" "$OVERLAY_DEST"
         log "  installed: $OVERLAY_DEST"
     fi
 

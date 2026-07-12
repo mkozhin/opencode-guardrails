@@ -457,7 +457,9 @@ class TestOrderInvariant(unittest.TestCase):
                 slice_between(raw, '".*": "ask"', '"*.env.example": "allow"')
             )
             bash_slices.append(
-                slice_between(raw, '"git push*": "ask"', '"tail *.key": "ask"')
+                slice_between(
+                    raw, '"git push*": "ask"', '"tail *.env.example *": "allow"'
+                )
             )
         self.assertEqual(read_slices[0], read_slices[1])
         self.assertEqual(read_slices[1], read_slices[2])
@@ -557,6 +559,9 @@ _BASH_ASK = (
     "less .env", "less secrets/.env.local",
     "head .env", "head deploy.pem",
     "tail app.env", "tail -f nginx.key",
+    # Trailing ` *` (-> `( .*)?`) means a redirect/extra-arg/second-file suffix
+    # after the secret name is still caught, not just a bare `cat .env`.
+    "cat .env 2>/dev/null", "cat .env README.md", "head .env -n 5",
 )
 # Commands the floor must NOT over-match (they follow the level's bash "*").
 _BASH_ALLOW = (
@@ -568,6 +573,10 @@ _BASH_ALLOW = (
     # suffixes exclude ordinary files.
     "catalog build", "cat README.md", "cat package.json", "cat notes.md",
     "head -n 5 main.py", "tail -f app.log", "less CHANGELOG.md",
+    # Bash carve-out (mirrors the read floor's `*.env.example` allow, placed
+    # LAST so it overrides the `*.env.*` ask): reading a template must not prompt.
+    "cat .env.example", "head .env.example",
+    "less .env.example", "tail .env.example",
 )
 
 
