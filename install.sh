@@ -136,6 +136,14 @@ if [ "$MODE" = "global" ]; then
     fi
     log "Agents installed. They load automatically from the global opencode config."
     log ""
+    if [ -n "${OPENCODE_CONFIG_DIR:-}" ] && [ "${OPENCODE_CONFIG_DIR}" != "$OVERLAY_DIR" ]; then
+        warn "WARNING: OPENCODE_CONFIG_DIR is already set to a different path:"
+        warn "    OPENCODE_CONFIG_DIR=$OPENCODE_CONFIG_DIR"
+        warn "Exporting the command below REPLACES it (opencode reads a single"
+        warn "OPENCODE_CONFIG_DIR). If you need both, merge their contents into one"
+        warn "directory instead of overwriting the variable."
+        warn ""
+    fi
     log "To ACTIVATE the overlay (guard-normal as default, build/plan disabled),"
     log "export OPENCODE_CONFIG_DIR so opencode loads the drop-in as an extra layer:"
     log ""

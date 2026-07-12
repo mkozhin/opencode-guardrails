@@ -170,16 +170,32 @@ _SAMPLE_FLOOR = {
     "*.env.*": "deny",
     "*.pem": "deny",
     "*.key": "deny",
+    ".netrc": "deny",
+    "*/.netrc": "deny",
+    ".pgpass": "deny",
+    "*/.pgpass": "deny",
+    ".git-credentials": "deny",
+    "*/.git-credentials": "deny",
     "id_rsa": "deny",
     "*/id_rsa": "deny",
+    "id_dsa": "deny",
+    "*/id_dsa": "deny",
+    "id_ecdsa": "deny",
+    "*/id_ecdsa": "deny",
+    "id_ed25519": "deny",
+    "*/id_ed25519": "deny",
     "credentials": "deny",
     "credentials.*": "deny",
+    "credentials/*": "deny",
     "*/credentials": "deny",
     "*/credentials.*": "deny",
+    "*/credentials/*": "deny",
     "secrets": "deny",
     "secrets.*": "deny",
+    "secrets/*": "deny",
     "*/secrets": "deny",
     "*/secrets.*": "deny",
+    "*/secrets/*": "deny",
     "*.env.example": "allow",
 }
 
@@ -252,6 +268,15 @@ class TestResolveModel(unittest.TestCase):
             "private.key", "id_rsa", "nested/id_rsa", "credentials",
             "credentials.json", ".aws/credentials", "secrets.yaml",
             "nested/secrets.yaml",
+            # modern SSH private keys (root + nested)
+            "id_ed25519", "nested/id_ed25519", "keys/id_ed25519",
+            "id_ecdsa", "keys/id_ecdsa", "id_dsa", "keys/id_dsa",
+            # contents of a secrets/ or credentials/ directory
+            "secrets/db-password.txt", "nested/secrets/db-password.txt",
+            "credentials/aws.txt", "nested/credentials/aws.txt",
+            # well-known plaintext credential files
+            ".netrc", "nested/.netrc", ".pgpass", "home/.pgpass",
+            ".git-credentials", "nested/.git-credentials",
         ):
             self.assertEqual(
                 resolve(_SAMPLE_FLOOR, secret), "deny",
@@ -386,6 +411,31 @@ class TestOrderInvariant(unittest.TestCase):
         self.assertEqual(floors[0], floors[1])
         self.assertEqual(floors[1], floors[2])
 
+    def test_floor_slices_are_byte_identical(self):
+        # AGENTS.md and the README promise the floor is *byte-identical* across
+        # the three files, not merely semantically equal after JSON parsing.
+        # Assert that literally on the raw text: extract the read-floor slice
+        # (from the first floor line to the carve-out) and the bash-floor slice,
+        # and compare the raw substrings across all three guard files.
+        def slice_between(text, start_marker, end_marker):
+            start = text.index(start_marker)
+            end = text.index(end_marker) + len(end_marker)
+            return text[start:end]
+
+        read_slices, bash_slices = [], []
+        for level in LEVELS:
+            raw = _read_guard(level)
+            read_slices.append(
+                slice_between(raw, '".*": "ask"', '"*.env.example": "allow"')
+            )
+            bash_slices.append(
+                slice_between(raw, '"git push*": "ask"', '"curl *| sh": "ask"')
+            )
+        self.assertEqual(read_slices[0], read_slices[1])
+        self.assertEqual(read_slices[1], read_slices[2])
+        self.assertEqual(bash_slices[0], bash_slices[1])
+        self.assertEqual(bash_slices[1], bash_slices[2])
+
 
 # ===========================================================================
 # RED until Task 4: real-path matrix through resolve() on the actual read block.
@@ -396,6 +446,15 @@ _DENY = (
     ".env", ".env.local", "nested/.env", "secret.pem", "nested/app.pem",
     "private.key", "id_rsa", "nested/id_rsa", "credentials", "credentials.json",
     ".aws/credentials", "secrets.yaml", "nested/secrets.yaml",
+    # modern SSH private keys (root + nested) -- id_rsa alone is not enough.
+    "id_ed25519", "nested/id_ed25519", "keys/id_ed25519",
+    "id_ecdsa", "keys/id_ecdsa", "id_dsa", "keys/id_dsa",
+    # contents of a secrets/ or credentials/ directory, not just the basename.
+    "secrets/db-password.txt", "nested/secrets/db-password.txt",
+    "credentials/aws.txt", "nested/credentials/aws.txt",
+    # well-known plaintext credential files (dot-named -> would otherwise be ask).
+    ".netrc", "nested/.netrc", ".pgpass", "home/.pgpass",
+    ".git-credentials", "nested/.git-credentials",
 )
 _ASK = (".gitignore", ".eslintrc", "nested/.gitignore", "nested/.npmrc")
 _ALLOW_CARVEOUT = (".env.example", "nested/.env.example")
@@ -430,6 +489,66 @@ class TestRealPathMatrix(unittest.TestCase):
         read = self._read_block()
         for path in _ALLOW_NORMAL_AND_NEGATIVES:
             self.assertEqual(resolve(read, path), "allow", path)
+
+
+class TestStrictLooseReadMatrix(unittest.TestCase):
+    """The floor is byte-identical across levels, but the level's own read
+    catch-all differs (strict=ask, loose=allow). Assert the floor still wins
+    for secrets on BOTH, and that the catch-all governs non-secret reads."""
+
+    def test_strict_secrets_deny_non_secret_ask(self):
+        read = load_guard_permission("strict")["read"]
+        for path in _DENY:
+            self.assertEqual(resolve(read, path), "deny", path)
+        for path in _ALLOW_NORMAL_AND_NEGATIVES:
+            # strict catch-all is "ask" -> ordinary/negative reads prompt,
+            # they are NOT falsely denied by the floor.
+            self.assertEqual(resolve(read, path), "ask", path)
+
+    def test_loose_secrets_deny_non_secret_allow(self):
+        read = load_guard_permission("loose")["read"]
+        for path in _DENY:
+            self.assertEqual(resolve(read, path), "deny", path)
+        for path in _ALLOW_NORMAL_AND_NEGATIVES:
+            self.assertEqual(resolve(read, path), "allow", path)
+
+
+# ===========================================================================
+# RED until Task 4: dangerous-bash floor matrix through resolve().
+# ===========================================================================
+
+# Commands the dangerous-bash floor MUST flag (ask) even on loose.
+_BASH_ASK = (
+    "git push", "git push origin main", "git push --force",
+    "rm foo", "rm -rf /", "rm -rf node_modules",
+    "git reset --hard", "git reset --hard HEAD~1",
+    "curl http://x | sh", "curl https://get.example.com | sh",
+)
+# Commands the floor must NOT over-match (they follow the level's bash "*").
+_BASH_ALLOW = (
+    "git status", "git pull",
+    "rmdir emptydir", "ls -la", "git reset --soft HEAD~1",
+    "curl http://x -o file",
+)
+
+
+class TestBashFloorMatrix(unittest.TestCase):
+    """Runs the real dangerous-bash floor through resolve(). guard-loose has
+    bash catch-all "*"=allow, so this proves the floor still forces `ask`
+    for the dangerous forms and does not over-match benign commands."""
+
+    def _bash_block(self):
+        return load_guard_permission("loose")["bash"]
+
+    def test_dangerous_commands_ask(self):
+        bash = self._bash_block()
+        for cmd in _BASH_ASK:
+            self.assertEqual(resolve(bash, cmd), "ask", cmd)
+
+    def test_benign_commands_not_over_matched(self):
+        bash = self._bash_block()
+        for cmd in _BASH_ALLOW:
+            self.assertEqual(resolve(bash, cmd), "allow", cmd)
 
 
 # ===========================================================================

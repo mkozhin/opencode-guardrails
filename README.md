@@ -55,13 +55,20 @@ makes it override a level's `allow`. The block is **byte-identical across all th
 agent files** (an invariant test enforces this).
 
 - **Hard secrets → `deny` (on `read`).** `.env` / `*.env` / `*.env.*`, `*.pem`,
-  `*.key`, `id_rsa`, `credentials` / `credentials.*`, `secrets` / `secrets.*` (with
-  their nested `*/…` twins) resolve to `deny`. `deny` is used instead of `ask` because
-  it **survives `--auto`** (auto-approve suppresses `ask`, but not `deny`), and because
-  these files are rarely legitimately read. This extends opencode's built-in `.env`
-  handling. Patterns are **anchored, not substring**, so ordinary docs like
-  `credentials-guide.md` or `secrets-overview.md` are *not* denied. A carve-out for
-  `*.env.example` (appended last) keeps templates readable.
+  `*.key`, the SSH private keys `id_rsa` / `id_ed25519` / `id_ecdsa` / `id_dsa`, the
+  plaintext credential files `.netrc` / `.pgpass` / `.git-credentials`,
+  `credentials` / `credentials.*`, `secrets` / `secrets.*`, and the *contents* of a
+  `credentials/` or `secrets/` directory (each with its nested `*/…` twin) resolve to
+  `deny`. `deny` is used instead of `ask` because it **survives `--auto`** (auto-approve
+  suppresses `ask`, but not `deny`), and because these files are rarely legitimately
+  read. This **strengthens** opencode's built-in `.env` handling — whose default is
+  `ask`, not `deny` — to a hard `deny`. Patterns are **anchored, not substring**, so
+  ordinary docs like `credentials-guide.md` or `secrets-overview.md` are *not* denied.
+  A carve-out for `*.env.example` (appended last) keeps templates readable. Because the
+  floor is byte-identical across levels, both the `deny` tier and this carve-out apply
+  even on `strict`: hard secrets are denied and `.env.example` is auto-allowed at every
+  level, so `strict`'s "ask about everything" is really "ask about everything the floor
+  does not already decide".
 - **Other hidden files → `ask` (on `read`).** Dot-named files (`.*`, `*/.*`, e.g.
   `.gitignore`, `.eslintrc`) prompt for confirmation. This tier is *conditional*:
   `--auto` or a session-level `always` approval can suppress the prompt.
@@ -121,10 +128,14 @@ pointing opencode at that drop-in directory with **`OPENCODE_CONFIG_DIR`**. A sc
 command** instead:
 
 ```sh
-export OPENCODE_CONFIG_DIR="$HOME/.config/opencode-guardrails"
+export OPENCODE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode-guardrails"
 # make it permanent:
-echo 'export OPENCODE_CONFIG_DIR="$HOME/.config/opencode-guardrails"' >> ~/.bashrc
+echo 'export OPENCODE_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode-guardrails"' >> ~/.bashrc
 ```
+
+The drop-in directory is `${XDG_CONFIG_HOME:-$HOME/.config}/opencode-guardrails`, so if
+you set `XDG_CONFIG_HOME` this path follows it — copy the **exact command
+`install.sh` prints** rather than hardcoding `~/.config`.
 
 opencode *merges* config layers rather than replacing them, so this adds the overlay on
 top of your global config without editing anything you own.

@@ -75,7 +75,9 @@
 - **bash матчится по РАСПАРСЕННОЙ команде** (не по строке). ✓
 - permission во frontmatter `.md` (`permission: { edit: deny, bash: deny }`). ✓
 - **`config set`-команды НЕТ**; launch-флаг `--agent` эфемерный. ✓
-- Агенты: `~/.config/opencode/agents/*.md` (global) / `.opencode/agents/*.md` (project).
+- Агенты: `~/.config/opencode/agent/*.md` (global) / `.opencode/agent/*.md` (project).
+  ⚠️ КОРРЕКЦИЯ (Task 1/5): каталог — `agent/` (ЕДИНСТВЕННОЕ число), не `agents/`;
+  подтверждено на живом opencode 1.17.18 (install.sh использует `agent/`).
 
 Источники: [Config](https://opencode.ai/docs/config/), [Agents](https://opencode.ai/docs/agents/),
 [CLI](https://opencode.ai/docs/cli/), [Permissions](https://opencode.ai/docs/permissions/).
@@ -126,7 +128,7 @@
     `credentials-guide.md`, `credential-management.md`, `secrets-overview.md`, `keynote.md`;
     (абсолютные варианты — по итогам Task 1 о форме пути);
   - **юнит-тесты самого `resolve()`**: порядок правил, carve-out перебивает deny, `*`
-    не пересекает `/`;
+    **ПЕРЕСЕКАЕТ** `/` (Task 1: matcher = anchored dotall regex, `*`→`.*`);
   - **валидность**: frontmatter каждого `.md` парсится (способ — по Task 1: предпочесть
     формат со stdlib-парсером, `tomllib` для TOML / `json` для JSON; иначе минимальный
     parser известного фиксированного frontmatter — см. Task 3/4), обязательные ключи
@@ -156,7 +158,7 @@
 |---------|-----------------|------|-----------|------|------|--------------------|-----------------------------------|
 | **strict** | ask | ask | ask | ask | ask | ask | ask |
 | **normal** (дефолт) | ask | allow† | allow‡ | ask | ask | allow | ask |
-| **loose** | allow | allow† | allow‡ | allow | allow | allow | ask (external_directory/doom_loop) |
+| **loose** | allow | allow† | allow‡ | allow | allow | allow | ask (task/external_directory/doom_loop) |
 
 † `read` = `allow`, НО floor перебивает: жёсткие секреты → `deny`, прочие скрытые → `ask`.
 ‡ `grep`/`glob` = скаляр уровня (permission матчит поисковый аргумент, не пути — floor туда
@@ -164,8 +166,10 @@
 на `normal`/`loose`, документируется.
 
 **catch-all `"*"`** задаём явно в каждом уровне (не опираться на дефолты для
-`task`/`external_directory`/`doom_loop`/будущих). `external_directory`/`doom_loop` = `ask`
-даже на `loose`.
+`task`/`external_directory`/`doom_loop`/будущих). `task`/`external_directory`/`doom_loop` = `ask`
+даже на `loose` — сознательный консервативный выбор: `task` (спавн субагента) и выход за пределы
+worktree/doom-loop подтверждаются на всех уровнях, хотя `"*"` на `loose` = `allow`. Артефакт и обе
+README отражают именно это (`task` = `ask` на всех трёх уровнях).
 
 ### Порядок правил (важно для last-match-wins)
 
@@ -469,10 +473,11 @@ permission:
 > НЕ авторитетная реализация; отдельный модуль убран — codex over-engineering: потребитель
 > один). Его собственные юнит-тесты зелёные сразу; артефактные тесты красные до Task 4.
 
-- [x] `resolve(read_block, path)` helper: last-match-wins по glob'ам, `*` не пересекает `/`;
-      с явной пометкой-докстрингом «модель, не авторитет»
+- [x] `resolve(read_block, path)` helper: last-match-wins по glob'ам, `*` **ПЕРЕСЕКАЕТ** `/`
+      (Task 1 correction: matcher = anchored dotall regex `*`→`.*`); с пометкой «модель, не авторитет»
 - [x] юнит-тесты `resolve()` (зелёные сразу): порядок правил, carve-out перебивает deny,
-      root vs nested (`*.pem` не ловит `nested/x.pem` и наоборот), **carve-out dotfile**
+      `*` пересекает `/` (`*.pem` ЛОВИТ и `app.pem`, и `nested/app.pem` — парные `**/` избыточны),
+      **carve-out dotfile**
       (`*.env.example` перекрывает `.env*`-deny для литерала `.env.example` — leading-`*`
       матчит имя с точки; подтвердить в Task 8 smoke), anchored-негативы
       (`credentials-guide.md`/`secrets-overview.md` НЕ deny)
