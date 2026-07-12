@@ -491,14 +491,14 @@ permission:
 **Files:** Create `agents/guard-strict.md`, `agents/guard-normal.md`,
 `agents/guard-loose.md`, `opencode.json`.
 
-- [ ] написать три `.md` по таблице/формату (top-level `"*"` ПЕРВЫМ; в `read` — `"*"`,
+- [x] написать три `.md` по таблице/формату (top-level `"*"` ПЕРВЫМ; в `read` — `"*"`,
       ask-hidden, deny-секреты **root+nested**, carve-out последним; floor **идентичен**
       во всех трёх)
-- [ ] `opencode.json` overlay: `default_agent: guard-normal` + `disable` build/plan
-- [ ] короткая инструкция в теле каждого агента (только про уровень подтверждений)
-- [ ] frontmatter/JSON валидны выбранным в Task 1 способом (не `python -m json.tool` для
+- [x] `opencode.json` overlay: `default_agent: guard-normal` + `disable` build/plan
+- [x] короткая инструкция в теле каждого агента (только про уровень подтверждений)
+- [x] frontmatter/JSON валидны выбранным в Task 1 способом (не `python -m json.tool` для
       YAML — у stdlib нет YAML-парсера, codex MAJOR 2)
-- [ ] прогон `python -m unittest discover tests` — **ВСЕ зелёные** (инвариант + матрица +
+- [x] прогон `python -m unittest discover tests` — **ВСЕ зелёные** (инвариант + матрица +
       валидатор + `resolve`-юниты)
 
 ### Task 5: install.sh + тесты + подключение overlay
