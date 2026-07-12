@@ -564,18 +564,53 @@ permission:
 > Правка codex CRITICAL 5: раньше живая проверка готовых артефактов была необязательным
 > post-completion. Теперь это acceptance-gate: Python-`resolve()` — лишь модель.
 
-- [ ] три уровня-агента; floor `read`: секреты → `deny` (переживает `--auto`), прочие
-      скрытые → `ask` (условно) — подтверждено тестом
-- [ ] границы best-effort (grep/glob, bash) явно задокументированы; критерии не обещают
-      того, чего нет; модель угроз A зафиксирована (ADR + README)
-- [ ] артефакт — чистые данные, ставится `install.sh` без зависимостей
-- [ ] `verify.yml` гоняет `unittest` + `bash test_install.sh` + shellcheck на PR; записи в `main` нет
-- [ ] полный прогон: `python -m unittest discover tests` + `bash tests/test_install.sh`
-- [ ] **(GATE) runtime smoke на живом opencode** (мин. одна подтверждённая версия): установить
+- [x] три уровня-агента; floor `read`: секреты → `deny` (переживает `--auto`), прочие
+      скрытые → `ask` (условно) — подтверждено тестом (`Ran 37 OK`; `deny`-переживает-`--auto`
+      — по конструкции opencode: `--auto` гасит только `ask`, Task 1)
+- [x] границы best-effort (grep/glob, bash) явно задокументированы; критерии не обещают
+      того, чего нет; модель угроз A зафиксирована (ADR + README) → сверено:
+      README «Known limitations» (grep/glob не уважают `read`-deny; bash whole-string
+      best-effort; `--auto`/`always` гасят ask-слой; project-precedence) + «Threat model —
+      the careless agent only»/«Hardening»; `docs/adr/0001-*` — Decision «Defend against A only».
+- [x] артефакт — чистые данные, ставится `install.sh` без зависимостей (три `.md` +
+      `opencode.json`; installer только копирует файлы; ноль pip-зависимостей)
+- [x] `verify.yml` гоняет `unittest` + `bash test_install.sh` + shellcheck на PR; записи в
+      `main` нет → сверено: `on: pull_request`, `permissions: contents: read`, три шага
+      (unittest / `bash tests/test_install.sh` / `shellcheck install.sh tests/test_install.sh`).
+- [x] полный прогон: `python3 -m unittest discover tests` (Ran 37 OK) +
+      `bash tests/test_install.sh` (25 passed)
+- [x] **(GATE) runtime smoke на живом opencode** (мин. одна подтверждённая версия): установить
       `install.sh` + активировать overlay; проверить вживую — обычный `read` (allow),
       `read .env` (deny), `read .gitignore` (ask), carve-out `.env.example` (allow),
       dangerous bash (`git push`/`rm` → ask), `default_agent: guard-normal`, Tab-цикл без
       `build`/`plan`. Расхождения с моделью `resolve()` → чинить агентов и матрицу
+      → SMOKE (opencode 1.17.18, `/home/mgcom/.opencode/bin/opencode`, изолированный
+      `HOME`/`XDG_CONFIG_HOME` в scratchpad): `bash install.sh` (global) разложил агентов в
+      `…/opencode/agent/` + overlay в drop-in; активирован `OPENCODE_CONFIG_DIR`.
+      Проверял РЕАЛЬНЫЕ резолвнутые правила opencode через `opencode debug agent
+      <guard-*>` (даёт flat ruleset после мерджа слоёв и встроенных правил) и прогонял их
+      через matcher, **побайтово снятый из бинаря 1.17.18** (`pattern.replaceAll("\\","/")
+      .replace(/[.+^${}()|[\]\\]/g,"\\$&").replace(/\*/g,".*").replace(/\?/g,".")`;
+      trailing `" .*"→"( .*)?"`; `new RegExp("^"+l+"$","s")`; `findLast`, дефолт `ask`) —
+      т.е. чужой конфиг-мердж делал сам opencode, я лишь применил его же чистую matcher-
+      функцию. 26/26 проб СОШЛИСЬ с моделью (нулём расхождений, правки агентов/тестов НЕ
+      потребовались):
+      guard-normal `read`: `src/main.py`→allow, `.env`→deny, `nested/.env`→deny,
+      `.gitignore`→ask, `.env.example`→allow (carve-out бьёт deny), `credentials-guide.md`→
+      **allow** (не deny), `.aws/credentials`→deny, `secrets-overview.md`→allow,
+      `server.pem`→deny, `nested/app.key`→deny, `id_rsa`→deny;
+      guard-normal `bash`: `git push`/`git push origin main`/`rm foo`→ask, `ls -la`→ask;
+      guard-strict: `read src/main.py`→ask, `.env`→deny, `grep`→ask;
+      guard-loose: `read src/main.py`→allow, `.env`→deny, `.env.example`→allow, `.gitignore`→
+      ask, `bash ls -la`→allow, `git push`/`rm foo`→ask, `edit`→allow.
+      `opencode agent list`: primary = guard-strict/normal/loose (+ внутренние
+      compaction/summary/title) — **build/plan ОТСУТСТВУЮТ** (ушли из Tab-цикла).
+      `opencode debug config`: `default_agent = guard-normal`. Frontmatter (JSON-в-`---`)
+      распарсился (иначе `debug agent` не отдал бы permission-правила).
+      ⚠️ **Прокси**: живой Tab-keypress-цикл и интерактивные `ask`/`--auto`-промпты в TUI
+      headless не автоматизируются (`run` требует provider-auth) — верифицировано по прокси
+      (отсутствие build/plan в `agent list` + резолвнутые правила из `debug agent`), как и
+      предусмотрено Task 1.
 
 ### Task 9: [Final] Архивирование
 
