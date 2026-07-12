@@ -469,21 +469,21 @@ permission:
 > НЕ авторитетная реализация; отдельный модуль убран — codex over-engineering: потребитель
 > один). Его собственные юнит-тесты зелёные сразу; артефактные тесты красные до Task 4.
 
-- [ ] `resolve(read_block, path)` helper: last-match-wins по glob'ам, `*` не пересекает `/`;
+- [x] `resolve(read_block, path)` helper: last-match-wins по glob'ам, `*` не пересекает `/`;
       с явной пометкой-докстрингом «модель, не авторитет»
-- [ ] юнит-тесты `resolve()` (зелёные сразу): порядок правил, carve-out перебивает deny,
+- [x] юнит-тесты `resolve()` (зелёные сразу): порядок правил, carve-out перебивает deny,
       root vs nested (`*.pem` не ловит `nested/x.pem` и наоборот), **carve-out dotfile**
       (`*.env.example` перекрывает `.env*`-deny для литерала `.env.example` — leading-`*`
       матчит имя с точки; подтвердить в Task 8 smoke), anchored-негативы
       (`credentials-guide.md`/`secrets-overview.md` НЕ deny)
-- [ ] инвариант порядка (красный до Task 4): top-level `"*"` ПЕРВЫЙ в `permission`; внутри
+- [x] инвариант порядка (красный до Task 4): top-level `"*"` ПЕРВЫЙ в `permission`; внутри
       `read`/`bash` `"*"` первым; floor-блок побайтово одинаков во всех трёх `guard-*.md`
-- [ ] матрица реальных путей через `resolve()` (root+nested+absolute+negative по Testing
+- [x] матрица реальных путей через `resolve()` (root+nested+absolute+negative по Testing
       Strategy) — success, когда появятся агенты
-- [ ] валидатор frontmatter/overlay (способ из Task 1: `tomllib`/`json`/минимальный parser);
+- [x] валидатор frontmatter/overlay (способ из Task 1: `tomllib`/`json`/минимальный parser);
       error-кейсы через **`assertRaises`/отрицательный результат** (validator ОТКЛОНЯЕТ битый
       вход — тест не падает сам, codex MINOR 2)
-- [ ] прогон `python -m unittest discover tests`: `resolve`-юниты зелёные, артефактные —
+- [x] прогон `python -m unittest discover tests`: `resolve`-юниты зелёные, артефактные —
       красные (ожидаемо до Task 4)
 
 ### Task 4: Три агента + overlay (делают тесты зелёными)
