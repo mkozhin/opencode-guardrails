@@ -53,6 +53,31 @@ log()  { printf '%s\n' "$*"; }
 warn() { printf '%s\n' "$*" >&2; }
 err()  { printf 'error: %s\n' "$*" >&2; }
 
+# shell_squote VALUE — print VALUE wrapped in single quotes, safe to paste into a
+# shell. Embedded single quotes are escaped as '\'' so the result survives any
+# path (spaces, $, backticks, quotes). Used for the printed activation commands.
+shell_squote() { printf "'%s'" "${1//\'/\'\\\'\'}"; }
+
+# reject_irregular_dest DST — fail (setting REFUSED) if DST exists but is not a
+# plain regular file: a symlink (cp would clobber its TARGET, possibly outside the
+# install dir) or a directory/other (cp would silently write inside it and report
+# success). Returns 0 and leaves REFUSED untouched when DST is a regular file or
+# absent, so the caller may proceed.
+reject_irregular_dest() {
+    local dst="$1"
+    if [ -L "$dst" ]; then
+        err "destination is a symlink; refusing to follow it (its target would be overwritten): $dst"
+        REFUSED=1
+        return 1
+    fi
+    if [ -e "$dst" ] && [ ! -f "$dst" ]; then
+        err "destination exists but is not a regular file (directory or special): $dst"
+        REFUSED=1
+        return 1
+    fi
+    return 0
+}
+
 # Parse arguments.
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -90,13 +115,17 @@ REFUSED=0
 #   otherwise leave the existing file in place and flag a refusal.
 install_file() {
     local src="$1" dst="$2"
+    reject_irregular_dest "$dst" || return 0
     if [ -f "$dst" ]; then
         if cmp -s "$src" "$dst"; then
             log "  unchanged: $dst"
             return 0
         fi
         if [ "$FORCE" -eq 1 ]; then
-            cp -f "$src" "$dst"
+            # Remove first so cp never dereferences a (concurrently created)
+            # symlink and writes through it to an unrelated target.
+            rm -f "$dst"
+            cp "$src" "$dst"
             log "  overwritten: $dst"
             return 0
         fi
@@ -119,7 +148,14 @@ install_agents() {
 }
 
 if [ "$MODE" = "global" ]; then
-    CONFIG_BASE="${XDG_CONFIG_HOME:-$HOME/.config}"
+    if [ -n "${XDG_CONFIG_HOME:-}" ]; then
+        CONFIG_BASE="$XDG_CONFIG_HOME"
+    elif [ -n "${HOME:-}" ]; then
+        CONFIG_BASE="$HOME/.config"
+    else
+        err "cannot determine config dir: neither XDG_CONFIG_HOME nor HOME is set"
+        exit 1
+    fi
     AGENTS_DEST="$CONFIG_BASE/opencode/$AGENT_SUBDIR"
     OVERLAY_DIR="$CONFIG_BASE/opencode-guardrails"
     OVERLAY_DEST="$OVERLAY_DIR/opencode.json"
@@ -144,13 +180,18 @@ if [ "$MODE" = "global" ]; then
         warn "directory instead of overwriting the variable."
         warn ""
     fi
+    # Escape the path for safe copy-paste (spaces, $, quotes, backticks). OVERLAY_Q
+    # is the single-quoted activation statement; OVERLAY_ECHO wraps that statement
+    # again so the printed `echo …` appends a correctly-quoted line to the profile.
+    OVERLAY_Q="$(shell_squote "$OVERLAY_DIR")"
+    OVERLAY_ECHO="$(shell_squote "export OPENCODE_CONFIG_DIR=$OVERLAY_Q")"
     log "To ACTIVATE the overlay (guard-normal as default, build/plan disabled),"
     log "export OPENCODE_CONFIG_DIR so opencode loads the drop-in as an extra layer:"
     log ""
-    log "    export OPENCODE_CONFIG_DIR=\"$OVERLAY_DIR\""
+    log "    export OPENCODE_CONFIG_DIR=$OVERLAY_Q"
     log ""
     log "To make it permanent, add that line to your shell profile, e.g.:"
-    log "    echo 'export OPENCODE_CONFIG_DIR=\"$OVERLAY_DIR\"' >> ~/.bashrc"
+    log "    echo $OVERLAY_ECHO >> ~/.bashrc"
     log ""
     log "This script does NOT edit your shell profile and does NOT claim the overlay"
     log "is active yet — the export above must run in your own shell."
@@ -171,11 +212,14 @@ else
 
     mkdir -p "$PROJECT_DIR"
     log "Installing overlay into project layer: $OVERLAY_DEST"
-    if [ -f "$OVERLAY_DEST" ]; then
+    if ! reject_irregular_dest "$OVERLAY_DEST"; then
+        :  # refused: not a regular file (symlink/dir); REFUSED already set
+    elif [ -f "$OVERLAY_DEST" ]; then
         if cmp -s "$SRC_OVERLAY" "$OVERLAY_DEST"; then
             log "  unchanged: $OVERLAY_DEST"
         elif [ "$FORCE" -eq 1 ]; then
-            cp -f "$SRC_OVERLAY" "$OVERLAY_DEST"
+            rm -f "$OVERLAY_DEST"
+            cp "$SRC_OVERLAY" "$OVERLAY_DEST"
             log "  overwritten: $OVERLAY_DEST"
         else
             warn "  refused: $OVERLAY_DEST already exists and differs."

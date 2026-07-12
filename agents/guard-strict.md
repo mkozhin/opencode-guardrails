@@ -1,6 +1,6 @@
 ---
 {
-  "description": "Strictest confirmation level: every action asks first. Use when you want to review each read, edit, command, and search before it runs.",
+  "description": "Strictest confirmation level: every action asks first, except the floor that always denies secret reads and auto-allows *.env.example. Use when you want to review each read, edit, command, and search before it runs.",
   "mode": "primary",
   "permission": {
     "*": "ask",
@@ -49,7 +49,23 @@
       "git push*": "ask",
       "rm *": "ask",
       "git reset --hard*": "ask",
-      "curl *| sh": "ask"
+      "curl *| sh": "ask",
+      "cat *.env": "ask",
+      "cat *.env.*": "ask",
+      "cat *.pem": "ask",
+      "cat *.key": "ask",
+      "less *.env": "ask",
+      "less *.env.*": "ask",
+      "less *.pem": "ask",
+      "less *.key": "ask",
+      "head *.env": "ask",
+      "head *.env.*": "ask",
+      "head *.pem": "ask",
+      "head *.key": "ask",
+      "tail *.env": "ask",
+      "tail *.env.*": "ask",
+      "tail *.pem": "ask",
+      "tail *.key": "ask"
     },
     "webfetch": "ask",
     "websearch": "ask",
@@ -61,5 +77,9 @@
 ---
 
 This agent only sets the confirmation-strictness level to **strict**: every tool
-action asks for confirmation first. It does not change the model's behaviour or
-persona in any other way.
+action asks for confirmation first, with one exception — the shared floor still
+applies. Hard secrets (`.env`, `*.pem`, `*.key`, SSH keys, credential files, …)
+are always **denied** rather than merely asked, `*.env.example` templates are
+**auto-allowed**, and other hidden dot-files still **ask**. So "ask about
+everything" really means "ask about everything the floor does not already
+decide". It does not change the model's behaviour or persona in any other way.

@@ -73,9 +73,12 @@ agent files** (an invariant test enforces this).
   `.gitignore`, `.eslintrc`) prompt for confirmation. This tier is *conditional*:
   `--auto` or a session-level `always` approval can suppress the prompt.
 - **Dangerous bash → `ask` (best-effort).** Common direct forms — `git push*`,
-  `rm *`, `git reset --hard*`, `curl … | sh` — prompt even on `loose`. This is
-  best-effort only: chaining, variables and obfuscation bypass it (see
-  [Known limitations](#known-limitations)).
+  `rm *`, `git reset --hard*`, `curl … | sh` — plus best-effort secret **reads**
+  through the shell (`cat` / `less` / `head` / `tail` of `*.env` / `*.env.*` /
+  `*.pem` / `*.key`, e.g. `cat .env`) — prompt even on `loose`. This is
+  best-effort only: chaining, variables and obfuscation bypass it (`c=cat; $c .env`),
+  and it covers the four common readers on the env/pem/key file classes, not every
+  reader or every secret name (see [Known limitations](#known-limitations)).
 
 ## Threat model — the careless agent only
 

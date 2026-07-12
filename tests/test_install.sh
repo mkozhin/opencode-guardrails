@@ -122,6 +122,58 @@ check "missing agents dir: non-zero exit" "$([ "$rc" -ne 0 ] && echo 0 || echo 1
 check "missing agents dir: clear error" \
     "$(printf '%s' "$out" | grep -qi 'agents directory not found' && echo 0 || echo 1)"
 
+# --- Case 8: --force must NOT follow a symlinked destination ----------------
+# A symlinked dest whose target is an unrelated file must never be written
+# through: cp -f would clobber the target. The installer removes/refuses instead.
+reset_home
+mkdir -p "$AGENT_DEST"
+PRECIOUS="$WORK/precious.txt"
+printf 'PRECIOUS DATA\n' > "$PRECIOUS"
+ln -s "$PRECIOUS" "$AGENT_DEST/guard-normal.md"
+out="$(bash "$INSTALL" --force 2>&1)"; rc=$?
+check "symlink: --force exits non-zero (symlink dest refused)" \
+    "$([ "$rc" -ne 0 ] && echo 0 || echo 1)"
+check "symlink: symlink TARGET left intact under --force" \
+    "$(grep -q 'PRECIOUS DATA' "$PRECIOUS" && echo 0 || echo 1)"
+check "symlink: dest is still a symlink (not clobbered)" \
+    "$([ -L "$AGENT_DEST/guard-normal.md" ] && echo 0 || echo 1)"
+check "symlink: symlink refusal reported" \
+    "$(printf '%s' "$out" | grep -qi 'symlink' && echo 0 || echo 1)"
+
+# --- Case 9: a directory where a regular file is expected -------------------
+# cp into an existing directory would silently write inside it and report
+# success; the installer must detect a non-regular dest and error out.
+reset_home
+mkdir -p "$AGENT_DEST/guard-normal.md"
+out="$(bash "$INSTALL" 2>&1)"; rc=$?
+check "dir-dest: non-zero exit when dest is a directory" \
+    "$([ "$rc" -ne 0 ] && echo 0 || echo 1)"
+check "dir-dest: dest stays an empty directory (nothing written inside)" \
+    "$([ -d "$AGENT_DEST/guard-normal.md" ] && [ -z "$(ls -A "$AGENT_DEST/guard-normal.md")" ] && echo 0 || echo 1)"
+check "dir-dest: clear 'not a regular file' error" \
+    "$(printf '%s' "$out" | grep -qi 'not a regular file' && echo 0 || echo 1)"
+
+# --- Case 10: --project overlay symlink is not followed under --force -------
+reset_home
+PROJECT2="$WORK/project2"
+mkdir -p "$PROJECT2/.opencode"
+PRECIOUS2="$WORK/precious2.txt"
+printf 'PRECIOUS2 DATA\n' > "$PRECIOUS2"
+ln -s "$PRECIOUS2" "$PROJECT2/.opencode/opencode.json"
+out="$(cd "$PROJECT2" && bash "$INSTALL" --project --force 2>&1)"; rc=$?
+check "project symlink: --force exits non-zero (overlay symlink refused)" \
+    "$([ "$rc" -ne 0 ] && echo 0 || echo 1)"
+check "project symlink: overlay symlink TARGET left intact" \
+    "$(grep -q 'PRECIOUS2 DATA' "$PRECIOUS2" && echo 0 || echo 1)"
+
+# --- Case 11: global install works with XDG set but HOME unset --------------
+# Regression: `${XDG_CONFIG_HOME:-$HOME/.config}` under `set -u` must not trip
+# on an unset HOME when XDG_CONFIG_HOME is provided.
+reset_home
+out="$(env -u HOME XDG_CONFIG_HOME="$XDG_CONFIG_HOME" bash "$INSTALL" 2>&1)"; rc=$?
+check "no-HOME: exit 0 when XDG_CONFIG_HOME set and HOME unset" \
+    "$([ "$rc" -eq 0 ] && echo 0 || echo 1)"
+
 # --- Summary ----------------------------------------------------------------
 printf '\n----------------------------------------\n'
 printf 'Results: %d passed, %d failed\n' "$PASS" "$FAIL"
