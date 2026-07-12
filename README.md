@@ -1,4 +1,4 @@
-> Русская версия: [README_RU.md](README_RU.md)
+> Available in Russian: [README_RU.md](README_RU.md)
 
 # opencode-guardrails
 

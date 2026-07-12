@@ -1,4 +1,4 @@
-> English version: [README.md](README.md)
+> Английская версия: [README.md](README.md)
 
 # opencode-guardrails
 
