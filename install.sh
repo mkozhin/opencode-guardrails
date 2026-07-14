@@ -10,7 +10,7 @@
 #   --project         — agents and the overlay go into ./.opencode/ (the project
 #                       layer), which opencode loads automatically for this repo.
 #
-# The overlay makes normal the default agent and disables the built-in
+# The overlay makes guard/normal the default agent and disables the built-in
 # build/plan agents. It is installed as a SEPARATE file/layer; your own opencode
 # config is never edited.
 #
