@@ -149,6 +149,42 @@ top of your global config without editing anything you own.
 it can win back `default_agent` and re-enable `build`/`plan` for that project. In such a
 project, use `--project` instead.
 
+### No env var — merge the overlay into your global config
+
+Prefer not to touch a shell profile — and want activation to hold in **every terminal**?
+Skip `OPENCODE_CONFIG_DIR` entirely and put the two overlay keys straight into your
+**global opencode config**, which opencode reads on its own in any shell.
+
+1. Install just the agents (they load automatically, no env var needed):
+
+   ```sh
+   ./install.sh   # copies guard-*.md into ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/
+   ```
+
+   You can ignore the `OPENCODE_CONFIG_DIR` command it prints — this method does not use
+   the drop-in directory.
+
+2. Add `default_agent` and the `build`/`plan` disable map to your global config file,
+   `${XDG_CONFIG_HOME:-~/.config}/opencode/opencode.json`. opencode also accepts
+   `opencode.jsonc` (JSON-with-comments), so if that file already exists edit it instead;
+   create the file if neither exists:
+
+   ```jsonc
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "default_agent": "guard-normal",
+     "agent": {
+       "build": { "disable": true },
+       "plan": { "disable": true }
+     }
+   }
+   ```
+
+opencode has **no `config set` command** — this file is edited by hand. Because it is the
+global layer opencode always reads, `guard-normal` becomes the default and `build`/`plan`
+leave the Tab cycle in every terminal, with no env var and no `.bashrc` edit. The same
+precedence caveat applies: a **project** `opencode.json` still overrides the global layer.
+
 ### `--project` mode
 
 ```sh

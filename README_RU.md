@@ -149,6 +149,43 @@ opencode *мерджит* слои конфига, а не подменяет и
 отыграть назад `default_agent` и вернуть `build`/`plan` для этого проекта. В таком проекте
 используйте `--project`.
 
+### Без env-переменной — впишите overlay в глобальный конфиг
+
+Не хотите трогать shell-профиль — и хотите, чтобы активация держалась во **всех
+терминалах**? Откажитесь от `OPENCODE_CONFIG_DIR` вовсе и впишите две настройки overlay
+прямо в **глобальный конфиг opencode**, который opencode читает сам в любом shell.
+
+1. Установите только агентов (грузятся автоматически, переменная не нужна):
+
+   ```sh
+   ./install.sh   # копирует guard-*.md в ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/
+   ```
+
+   Напечатанную команду `OPENCODE_CONFIG_DIR` можно проигнорировать — этот способ не
+   использует drop-in-директорию.
+
+2. Добавьте `default_agent` и карту отключения `build`/`plan` в глобальный конфиг
+   `${XDG_CONFIG_HOME:-~/.config}/opencode/opencode.json`. opencode также принимает
+   `opencode.jsonc` (JSON с комментариями) — если такой файл уже есть, правьте его; если
+   нет ни того ни другого, создайте файл:
+
+   ```jsonc
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "default_agent": "guard-normal",
+     "agent": {
+       "build": { "disable": true },
+       "plan": { "disable": true }
+     }
+   }
+   ```
+
+У opencode **нет команды `config set`** — этот файл правится руками. Поскольку это
+глобальный слой, который opencode читает всегда, `guard-normal` становится дефолтным, а
+`build`/`plan` уходят из Tab-цикла во всех терминалах — без env-переменной и без правки
+`.bashrc`. Оговорка про precedence та же: **project**-`opencode.json` всё равно
+переопределяет глобальный слой.
+
 ### Режим `--project`
 
 ```sh
