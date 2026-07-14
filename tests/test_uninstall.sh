@@ -120,6 +120,30 @@ check "unknown flag: non-zero exit" "$([ "$rc" -ne 0 ] && echo 0 || echo 1)"
 check "unknown flag: usage printed" \
     "$(printf '%s' "$out" | grep -q 'Usage:' && echo 0 || echo 1)"
 
+# --- Case 6: post-uninstall cleanup reminders --------------------------------
+# uninstall.sh cannot edit shell profiles or the global opencode config, so it
+# must DETECT and report those activation leftovers (all methods install.sh offers).
+reset_home
+bash "$INSTALL" >/dev/null 2>&1
+# simulate both activation methods a user might have configured after install:
+printf 'export OPENCODE_CONFIG_DIR="%s"\n' "$OVERLAY_DIR" > "$FAKE_HOME/.zshrc"
+printf '{ "default_agent": "guard/normal", "agent": { "build": { "disable": true }, "plan": { "disable": true } } }\n' \
+    > "$OPENCODE_DIR/opencode.json"
+out="$(bash "$UNINSTALL" 2>&1)"
+check "cleanup: flags OPENCODE_CONFIG_DIR export in a shell profile (.zshrc)" \
+    "$(printf '%s' "$out" | grep -q '\.zshrc' && printf '%s' "$out" | grep -q 'OPENCODE_CONFIG_DIR' && echo 0 || echo 1)"
+check "cleanup: flags merged guard/normal keys in the global opencode.json" \
+    "$(printf '%s' "$out" | grep -q 'references guard/normal' && echo 0 || echo 1)"
+
+# negative: a clean HOME (no profile export, no merged keys) reports none found
+reset_home
+bash "$INSTALL" >/dev/null 2>&1
+out="$(bash "$UNINSTALL" 2>&1)"
+check "cleanup: reports no profile export when none is set" \
+    "$(printf '%s' "$out" | grep -qi 'No OPENCODE_CONFIG_DIR export found' && echo 0 || echo 1)"
+check "cleanup: reports no global keys when none merged" \
+    "$(printf '%s' "$out" | grep -qi 'No guard/normal keys found' && echo 0 || echo 1)"
+
 # --- Summary ----------------------------------------------------------------
 printf '\n----------------------------------------\n'
 printf 'Results: %d passed, %d failed\n' "$PASS" "$FAIL"

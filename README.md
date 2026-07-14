@@ -240,10 +240,14 @@ but it **never touches sibling agents** in the parent `agent/` directory. In
 `--project` mode it removes `./.opencode/opencode.json` only if it is byte-identical to
 ours; a differing (your own/merged) overlay is left untouched unless you pass `--force`.
 
-What the uninstaller **cannot** do: it does not unset `OPENCODE_CONFIG_DIR` from your
-shell profile (drop that `export …` line yourself if you added it), and it does not
-remove `default_agent` / `agent.build` / `agent.plan` keys you merged into your **global**
-`opencode.json` by hand.
+What the uninstaller does not auto-edit — but now **detects and points you at**: it never
+touches files it doesn't own, so at the end (global mode) it scans your common shell
+profiles (`~/.bashrc`, `~/.zshrc`, `~/.zprofile`, fish, …) for an `OPENCODE_CONFIG_DIR`
+export and prints the exact **file and line** to remove, and checks your **global**
+`opencode.json` / `opencode.jsonc` for the merged `default_agent` / `agent.build` /
+`agent.plan` keys and reminds you which to delete. Removing them is still your call — it
+covers every activation method `install.sh` offers, but never edits a profile or config
+file for you.
 
 The level agents live under a single `guard/` subdirectory precisely so the whole set
 also removes with one manual command. In **global** mode the equivalent is:

@@ -141,12 +141,47 @@ if [ "$MODE" = "global" ]; then
     fi
 
     log ""
-    log "Done. What this script did NOT and CANNOT do:"
-    log "  - It does not edit your shell profile. If you added"
-    log "    'export OPENCODE_CONFIG_DIR=...' pointing at the drop-in, unset it yourself."
-    log "  - If you merged 'default_agent' / 'agent.build' / 'agent.plan' into your GLOBAL"
-    log "    opencode.json (or opencode.jsonc) by hand, remove those keys yourself; this"
-    log "    script never touches that file."
+    log "Manual cleanup — activation you may have set up after install.sh that this"
+    log "script does NOT touch (it never edits your shell profile or opencode config):"
+
+    # 1) Shell-profile exports of OPENCODE_CONFIG_DIR (any shell — bash/zsh/fish).
+    #    Read-only scan: report where it lives so you can remove it by hand.
+    home="${HOME:-}"
+    prof_found=0
+    if [ -n "$home" ]; then
+        for prof in "$home/.bashrc" "$home/.bash_profile" "$home/.profile" \
+                    "$home/.zshrc" "$home/.zprofile" "$home/.zshenv" \
+                    "$home/.config/fish/config.fish"; do
+            [ -f "$prof" ] || continue
+            if grep -n 'OPENCODE_CONFIG_DIR' "$prof" >/dev/null 2>&1; then
+                prof_found=1
+                warn "  - $prof exports OPENCODE_CONFIG_DIR — remove the line(s):"
+                grep -n 'OPENCODE_CONFIG_DIR' "$prof" 2>/dev/null | sed 's/^/        /' >&2 || true
+            fi
+        done
+    fi
+    if [ "$prof_found" -eq 0 ]; then
+        log "  - No OPENCODE_CONFIG_DIR export found in your common shell profiles."
+    fi
+    if [ -n "${OPENCODE_CONFIG_DIR:-}" ]; then
+        warn "  - OPENCODE_CONFIG_DIR is set in THIS shell; run: unset OPENCODE_CONFIG_DIR"
+    fi
+
+    # 2) Keys merged by hand into the GLOBAL opencode config (the env-var-free path).
+    cfg_found=0
+    for cfg in "$CONFIG_BASE/opencode/opencode.json" "$CONFIG_BASE/opencode/opencode.jsonc"; do
+        [ -f "$cfg" ] || continue
+        if grep -q 'guard/normal' "$cfg" 2>/dev/null; then
+            cfg_found=1
+            warn "  - $cfg references guard/normal — you likely merged the overlay keys here."
+        fi
+    done
+    if [ "$cfg_found" -eq 1 ]; then
+        warn "    Remove by hand: \"default_agent\": \"guard/normal\", and the"
+        warn "    \"agent\": { \"build\": { \"disable\": true }, \"plan\": { \"disable\": true } } entries."
+    else
+        log "  - No guard/normal keys found in your global opencode.json / opencode.jsonc."
+    fi
 else
     PROJECT_DIR="$PWD/.opencode"
     AGENTS_DEST="$PROJECT_DIR/$AGENT_SUBDIR/$AGENT_NS"
@@ -182,7 +217,9 @@ else
     fi
 
     log ""
-    log "Done removing the project-layer install."
+    log "Manual cleanup: if you merged our keys ('default_agent', 'agent.build'/'plan')"
+    log "into a pre-existing $OVERLAY_DEST that this script left untouched, remove them by"
+    log "hand. --project needs no shell profile or env var, so nothing else to clean up."
 fi
 
 exit 0
