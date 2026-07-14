@@ -112,7 +112,10 @@ mistakes on top of it, but they are not themselves the boundary.
 ## Installation
 
 Requires a working opencode install (see [Compatibility](#compatibility)). Clone this
-repo, then run `install.sh` from its root.
+repo anywhere and run `install.sh` by its path. In **global** mode the installer *copies*
+the agents and overlay into your opencode config, so the clone location does not matter and
+the clone can be deleted afterwards (keep it only to `git pull` updates and re-install). In
+**`--project`** mode the destination is your current directory — see that section below.
 
 ### Primary path — global install + overlay via `OPENCODE_CONFIG_DIR`
 
@@ -187,8 +190,13 @@ precedence caveat applies: a **project** `opencode.json` still overrides the glo
 
 ### `--project` mode
 
+`cd` into the project you want to guard first, then run the installer **by its path** —
+`./.opencode/` is created relative to your current directory (`$PWD`), **not** the cloned
+repo:
+
 ```sh
-./install.sh --project
+cd /path/to/your-project
+/path/to/opencode-guardrails/install.sh --project
 ```
 
 Writes the agents into `./.opencode/agent/` and the overlay into
