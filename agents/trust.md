@@ -76,7 +76,7 @@
 }
 ---
 
-This agent only sets the confirmation-strictness level to **loose**: almost
+This agent only sets the confirmation-strictness level to **trust**: almost
 everything runs without asking, including edits and shell commands. The floor
 still applies — secrets are denied and the dangerous-shell patterns still ask.
 It does not change the model's behaviour or persona.

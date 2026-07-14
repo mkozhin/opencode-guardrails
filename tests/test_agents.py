@@ -1,6 +1,7 @@
 """Artifact tests for opencode-guardrails (Task 3).
 
-These tests were authored tests-first, BEFORE the three ``agents/guard-*.md``
+These tests were authored tests-first, BEFORE the three ``agents/ask.md``,
+``agents/normal.md`` and ``agents/trust.md``
 files and the ``opencode.json`` overlay existed (Task 4). Those artifacts now
 exist and the whole suite is green. The two test families are:
 
@@ -26,7 +27,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AGENTS_DIR = os.path.join(ROOT, "agents")
 OVERLAY_PATH = os.path.join(ROOT, "opencode.json")
-LEVELS = ("strict", "normal", "loose")
+LEVELS = ("ask", "normal", "trust")
 
 
 # ---------------------------------------------------------------------------
@@ -151,18 +152,18 @@ def validate_overlay(text):
 
 
 # ---------------------------------------------------------------------------
-# Artifact loaders (read the committed guard-*.md files).
+# Artifact loaders (read the committed ask.md/normal.md/trust.md files).
 # ---------------------------------------------------------------------------
 
 
-def _read_guard(level):
-    path = os.path.join(AGENTS_DIR, "guard-%s.md" % level)
+def _read_level(level):
+    path = os.path.join(AGENTS_DIR, "%s.md" % level)
     with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
-def load_guard_permission(level):
-    return validate_frontmatter(_read_guard(level))["permission"]
+def load_level_permission(level):
+    return validate_frontmatter(_read_level(level))["permission"]
 
 
 # A representative anchored floor used by the resolve() unit tests. It encodes
@@ -351,11 +352,11 @@ class TestValidatorErrorCases(unittest.TestCase):
 
     def test_valid_overlay_accepted(self):
         good = json.dumps({
-            "default_agent": "guard-normal",
+            "default_agent": "normal",
             "agent": {"build": {"disable": True}, "plan": {"disable": True}},
         })
         data = validate_overlay(good)
-        self.assertEqual(data["default_agent"], "guard-normal")
+        self.assertEqual(data["default_agent"], "normal")
 
     def test_malformed_overlay_json_rejected(self):
         with self.assertRaises(ValueError):
@@ -367,19 +368,19 @@ class TestValidatorErrorCases(unittest.TestCase):
             validate_overlay(bad)
 
     def test_overlay_missing_agent_map_rejected(self):
-        bad = json.dumps({"default_agent": "guard-normal"})
+        bad = json.dumps({"default_agent": "normal"})
         with self.assertRaises(ValueError):
             validate_overlay(bad)
 
     def test_overlay_agent_entry_without_disable_rejected(self):
-        bad = json.dumps({"default_agent": "guard-normal", "agent": {"build": {}}})
+        bad = json.dumps({"default_agent": "normal", "agent": {"build": {}}})
         with self.assertRaises(ValueError):
             validate_overlay(bad)
 
     def test_overlay_disable_false_rejected(self):
         # disable: false silently re-enables the agent -> must be rejected.
         bad = json.dumps({
-            "default_agent": "guard-normal",
+            "default_agent": "normal",
             "agent": {"build": {"disable": False}, "plan": {"disable": True}},
         })
         with self.assertRaises(ValueError):
@@ -388,7 +389,7 @@ class TestValidatorErrorCases(unittest.TestCase):
     def test_overlay_missing_plan_entry_rejected(self):
         # build disabled but plan entirely absent -> plan stays enabled -> reject.
         bad = json.dumps({
-            "default_agent": "guard-normal",
+            "default_agent": "normal",
             "agent": {"build": {"disable": True}},
         })
         with self.assertRaises(ValueError):
@@ -403,7 +404,7 @@ class TestValidatorErrorCases(unittest.TestCase):
 class TestOrderInvariant(unittest.TestCase):
     def test_top_level_star_is_first_key(self):
         for level in LEVELS:
-            perm = load_guard_permission(level)
+            perm = load_level_permission(level)
             self.assertEqual(
                 next(iter(perm)), "*",
                 "top-level '*' must be the FIRST key in permission (%s)" % level,
@@ -411,7 +412,7 @@ class TestOrderInvariant(unittest.TestCase):
 
     def test_read_and_bash_star_is_first(self):
         for level in LEVELS:
-            perm = load_guard_permission(level)
+            perm = load_level_permission(level)
             for block_name in ("read", "bash"):
                 block = perm[block_name]
                 self.assertIsInstance(block, dict)
@@ -426,7 +427,7 @@ class TestOrderInvariant(unittest.TestCase):
         # across all three guard files -- the invariant that replaces a generator.
         floors = []
         for level in LEVELS:
-            read = load_guard_permission(level)["read"]
+            read = load_level_permission(level)["read"]
             floors.append(list(read.items())[1:])
         self.assertEqual(floors[0], floors[1])
         self.assertEqual(floors[1], floors[2])
@@ -434,7 +435,7 @@ class TestOrderInvariant(unittest.TestCase):
     def test_bash_floor_identical_across_levels(self):
         floors = []
         for level in LEVELS:
-            bash = load_guard_permission(level)["bash"]
+            bash = load_level_permission(level)["bash"]
             floors.append(list(bash.items())[1:])
         self.assertEqual(floors[0], floors[1])
         self.assertEqual(floors[1], floors[2])
@@ -452,7 +453,7 @@ class TestOrderInvariant(unittest.TestCase):
 
         read_slices, bash_slices = [], []
         for level in LEVELS:
-            raw = _read_guard(level)
+            raw = _read_level(level)
             read_slices.append(
                 slice_between(raw, '".*": "ask"', '"*.env.example": "allow"')
             )
@@ -471,7 +472,7 @@ class TestOrderInvariant(unittest.TestCase):
 # RED until Task 4: real-path matrix through resolve() on the actual read block.
 # ===========================================================================
 
-# Expected resolutions for guard-normal (read catch-all = "allow", floor applied).
+# Expected resolutions for normal (read catch-all = "allow", floor applied).
 _DENY = (
     ".env", ".env.local", "nested/.env", "secret.pem", "nested/app.pem",
     "private.key", "id_rsa", "nested/id_rsa", "credentials", "credentials.json",
@@ -495,10 +496,10 @@ _ALLOW_NORMAL_AND_NEGATIVES = (
 
 
 class TestRealPathMatrix(unittest.TestCase):
-    """Runs the real guard-normal read block (once it exists) through resolve()."""
+    """Runs the real normal read block (once it exists) through resolve()."""
 
     def _read_block(self):
-        return load_guard_permission("normal")["read"]
+        return load_level_permission("normal")["read"]
 
     def test_deny_paths(self):
         read = self._read_block()
@@ -527,7 +528,7 @@ class TestStrictLooseReadMatrix(unittest.TestCase):
     for secrets on BOTH, and that the catch-all governs non-secret reads."""
 
     def test_strict_secrets_deny_non_secret_ask(self):
-        read = load_guard_permission("strict")["read"]
+        read = load_level_permission("ask")["read"]
         for path in _DENY:
             self.assertEqual(resolve(read, path), "deny", path)
         for path in _ALLOW_NORMAL_AND_NEGATIVES:
@@ -536,7 +537,7 @@ class TestStrictLooseReadMatrix(unittest.TestCase):
             self.assertEqual(resolve(read, path), "ask", path)
 
     def test_loose_secrets_deny_non_secret_allow(self):
-        read = load_guard_permission("loose")["read"]
+        read = load_level_permission("trust")["read"]
         for path in _DENY:
             self.assertEqual(resolve(read, path), "deny", path)
         for path in _ALLOW_NORMAL_AND_NEGATIVES:
@@ -583,12 +584,12 @@ _BASH_ALLOW = (
 
 
 class TestBashFloorMatrix(unittest.TestCase):
-    """Runs the real dangerous-bash floor through resolve(). guard-loose has
+    """Runs the real dangerous-bash floor through resolve(). trust has
     bash catch-all "*"=allow, so this proves the floor still forces `ask`
     for the dangerous forms and does not over-match benign commands."""
 
     def _bash_block(self):
-        return load_guard_permission("loose")["bash"]
+        return load_level_permission("trust")["bash"]
 
     def test_dangerous_commands_ask(self):
         bash = self._bash_block()
@@ -611,12 +612,12 @@ class TestBashFloorMatrix(unittest.TestCase):
 # ===========================================================================
 #
 # The order-invariant and path-matrix tests above pin the floor, but nothing
-# asserted the exact per-level SCALAR values (e.g. flipping guard-normal `edit`
+# asserted the exact per-level SCALAR values (e.g. flipping normal `edit`
 # from ask->allow would slip through). This locks the whole matrix so a scalar
 # regression fails a test. `read` and `bash` are dict blocks (their own `*` is
 # checked separately); every other permission key is a plain allow/ask/deny.
 _SCALAR_MATRIX = {
-    "strict": {
+    "ask": {
         "*": "ask", "grep": "ask", "glob": "ask", "edit": "ask",
         "webfetch": "ask", "websearch": "ask", "task": "ask",
         "external_directory": "ask", "doom_loop": "ask",
@@ -626,7 +627,7 @@ _SCALAR_MATRIX = {
         "webfetch": "allow", "websearch": "allow", "task": "ask",
         "external_directory": "ask", "doom_loop": "ask",
     },
-    "loose": {
+    "trust": {
         "*": "allow", "grep": "allow", "glob": "allow", "edit": "allow",
         "webfetch": "allow", "websearch": "allow", "task": "ask",
         "external_directory": "ask", "doom_loop": "ask",
@@ -634,16 +635,16 @@ _SCALAR_MATRIX = {
 }
 # The catch-all `*` inside the read/bash dict blocks (the level's own tier).
 _BLOCK_STAR = {
-    "strict": {"read": "ask", "bash": "ask"},
+    "ask": {"read": "ask", "bash": "ask"},
     "normal": {"read": "allow", "bash": "ask"},
-    "loose": {"read": "allow", "bash": "allow"},
+    "trust": {"read": "allow", "bash": "allow"},
 }
 
 
 class TestPermissionScalarMatrix(unittest.TestCase):
     def test_exact_scalar_values(self):
         for level in LEVELS:
-            perm = load_guard_permission(level)
+            perm = load_level_permission(level)
             expected = _SCALAR_MATRIX[level]
             # Every plain string-valued permission must match exactly.
             actual = {k: v for k, v in perm.items() if isinstance(v, str)}
@@ -654,7 +655,7 @@ class TestPermissionScalarMatrix(unittest.TestCase):
 
     def test_only_read_and_bash_are_dict_blocks(self):
         for level in LEVELS:
-            perm = load_guard_permission(level)
+            perm = load_level_permission(level)
             dict_keys = {k for k, v in perm.items() if isinstance(v, dict)}
             self.assertEqual(
                 dict_keys, {"read", "bash"},
@@ -663,7 +664,7 @@ class TestPermissionScalarMatrix(unittest.TestCase):
 
     def test_read_and_bash_star_catch_all(self):
         for level in LEVELS:
-            perm = load_guard_permission(level)
+            perm = load_level_permission(level)
             for block in ("read", "bash"):
                 self.assertEqual(
                     perm[block]["*"], _BLOCK_STAR[level][block],
@@ -674,14 +675,14 @@ class TestPermissionScalarMatrix(unittest.TestCase):
 class TestArtifactValidity(unittest.TestCase):
     def test_each_guard_frontmatter_valid(self):
         for level in LEVELS:
-            data = validate_frontmatter(_read_guard(level))
+            data = validate_frontmatter(_read_level(level))
             self.assertEqual(data["mode"], "primary")
             self.assertIn("permission", data)
 
     def test_overlay_valid(self):
         with open(OVERLAY_PATH, encoding="utf-8") as fh:
             data = validate_overlay(fh.read())
-        self.assertEqual(data["default_agent"], "guard-normal")
+        self.assertEqual(data["default_agent"], "normal")
         self.assertIn("build", data["agent"])
         self.assertIn("plan", data["agent"])
 

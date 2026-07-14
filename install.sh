@@ -10,7 +10,7 @@
 #   --project         — agents and the overlay go into ./.opencode/ (the project
 #                       layer), which opencode loads automatically for this repo.
 #
-# The overlay makes guard-normal the default agent and disables the built-in
+# The overlay makes normal the default agent and disables the built-in
 # build/plan agents. It is installed as a SEPARATE file/layer; your own opencode
 # config is never edited.
 #
@@ -207,7 +207,7 @@ if [ "$MODE" = "global" ]; then
     # again so the printed `echo …` appends a correctly-quoted line to the profile.
     OVERLAY_Q="$(shell_squote "$OVERLAY_DIR")"
     OVERLAY_ECHO="$(shell_squote "export OPENCODE_CONFIG_DIR=$OVERLAY_Q")"
-    log "To ACTIVATE the overlay (guard-normal as default, build/plan disabled),"
+    log "To ACTIVATE the overlay (normal as default, build/plan disabled),"
     log "export OPENCODE_CONFIG_DIR so opencode loads the drop-in as an extra layer:"
     log ""
     log "    export OPENCODE_CONFIG_DIR=$OVERLAY_Q"
@@ -223,8 +223,8 @@ if [ "$MODE" = "global" ]; then
     log "default_agent and re-enable build/plan for that project. Use --project there."
     log ""
     log "FALLBACK (agents only): if you never export OPENCODE_CONFIG_DIR, the three"
-    log "guard-* agents are still installed and selectable, but build/plan stay in the"
-    log "Tab cycle and guard-normal is NOT the default."
+    log "the three level agents are still installed and selectable, but build/plan stay in the"
+    log "Tab cycle and normal is NOT the default."
 else
     PROJECT_DIR="$PWD/.opencode"
     AGENTS_DEST="$PROJECT_DIR/$AGENT_SUBDIR"
@@ -245,7 +245,7 @@ else
         else
             warn "  refused: $OVERLAY_DEST already exists and differs."
             warn "  Not clobbering your project config. Merge these keys by hand:"
-            warn '      "default_agent": "guard-normal",'
+            warn '      "default_agent": "normal",'
             warn '      "agent": { "build": { "disable": true }, "plan": { "disable": true } }'
             warn "  Or re-run with --force to replace the file entirely."
             REFUSED=1

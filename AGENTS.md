@@ -5,13 +5,13 @@ Guidance for AI coding agents (Claude Code and others) working in this repositor
 ## What this project is
 
 `opencode-guardrails` is a distributable confirmation-strictness system for opencode
-(three primary agents `guard-strict` / `guard-normal` / `guard-loose` plus an
+(three primary agents `ask` / `normal` / `trust` plus an
 immovable floor). The full specification and task order live in `docs/plans/` — the
 active plan is the single source of requirements; check it before implementing.
 
 ## Artifact model (critical)
 
-- **The three `agents/guard-*.md` files and the `opencode.json` overlay are
+- **The three `agents/*.md` level files (`ask`/`normal`/`trust`) and the `opencode.json` overlay are
   hand-written and committed directly.** There is NO generator and NO `src/`→`dist/`
   split — a codegen pipeline for three rarely-changing files is not worth its cost.
 - **The floor is appended LAST** in each level's `read`/`bash` blocks (last-match-wins,

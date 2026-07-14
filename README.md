@@ -16,12 +16,12 @@ confirmations are** — and exposes it as three interchangeable agents:
 
 | Agent          | Meaning                                                              |
 |----------------|---------------------------------------------------------------------|
-| `guard-strict` | Every action asks first. Review each read, edit, command, search.   |
-| `guard-normal` | Balanced default. Reads/searches flow; edits and shell ask.         |
-| `guard-loose`  | Boldest. Almost everything runs; secrets and dangerous shell guard. |
+| `ask`          | Every action asks first. Review each read, edit, command, search.   |
+| `normal`       | Balanced default. Reads/searches flow; edits and shell ask.         |
+| `trust`        | Boldest. Almost everything runs; secrets and dangerous shell guard. |
 
 They are ordinary opencode primary agents, so they appear in the **Tab** cycle. The
-overlay (see [Installation](#installation)) makes `guard-normal` the default and hides
+overlay (see [Installation](#installation)) makes `normal` the default and hides
 `build`/`plan`, so the Tab cycle becomes exactly these three levels. None of them
 change the model's behaviour or persona — they set **only** the confirmation level.
 
@@ -123,12 +123,12 @@ the clone can be deleted afterwards (keep it only to `git pull` updates and re-i
 ./install.sh
 ```
 
-This copies the three `guard-*.md` files into your global opencode agent directory
+This copies the three level `.md` files (`ask.md`/`normal.md`/`trust.md`) into your global opencode agent directory
 (`${XDG_CONFIG_HOME:-~/.config}/opencode/agent/`, from which opencode always loads
 them) and places the [`opencode.json`](opencode.json) overlay into a separate drop-in
 directory (`${XDG_CONFIG_HOME:-~/.config}/opencode-guardrails/`).
 
-The overlay (`default_agent: guard-normal` + disabling `build`/`plan`) is activated by
+The overlay (`default_agent: normal` + disabling `build`/`plan`) is activated by
 pointing opencode at that drop-in directory with **`OPENCODE_CONFIG_DIR`**. A script
 **cannot** export an env var into your parent shell, so `install.sh` **prints the exact
 command** instead:
@@ -161,7 +161,7 @@ Skip `OPENCODE_CONFIG_DIR` entirely and put the two overlay keys straight into y
 1. Install just the agents (they load automatically, no env var needed):
 
    ```sh
-   ./install.sh   # copies guard-*.md into ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/
+   ./install.sh   # copies ask.md/normal.md/trust.md into ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/
    ```
 
    You can ignore the `OPENCODE_CONFIG_DIR` command it prints — this method does not use
@@ -175,7 +175,7 @@ Skip `OPENCODE_CONFIG_DIR` entirely and put the two overlay keys straight into y
    ```jsonc
    {
      "$schema": "https://opencode.ai/config.json",
-     "default_agent": "guard-normal",
+     "default_agent": "normal",
      "agent": {
        "build": { "disable": true },
        "plan": { "disable": true }
@@ -184,7 +184,7 @@ Skip `OPENCODE_CONFIG_DIR` entirely and put the two overlay keys straight into y
    ```
 
 opencode has **no `config set` command** — this file is edited by hand. Because it is the
-global layer opencode always reads, `guard-normal` becomes the default and `build`/`plan`
+global layer opencode always reads, `normal` becomes the default and `build`/`plan`
 leave the Tab cycle in every terminal, with no env var and no `.bashrc` edit. The same
 precedence caveat applies: a **project** `opencode.json` still overrides the global layer.
 
@@ -207,9 +207,9 @@ and prints the keys to merge by hand (or re-run with `--force`).
 
 ### Fallback — agents only
 
-If you never export `OPENCODE_CONFIG_DIR` (global mode), the three `guard-*` agents are
+If you never export `OPENCODE_CONFIG_DIR` (global mode), the three agents (`ask`/`normal`/`trust`) are
 still installed and selectable — but **`build`/`plan` stay in the Tab cycle** and
-`guard-normal` is **not** the default. This is a valid, lighter-touch setup; you just
+`normal` is **not** the default. This is a valid, lighter-touch setup; you just
 switch to a level manually.
 
 `install.sh` is idempotent, never overwrites a differing file without `--force`, and
@@ -247,9 +247,9 @@ Being honest about what the floor does **not** cover:
 ## Repository layout
 
 - [`agents/`](agents/) — the three hand-written level agents
-  ([`guard-strict.md`](agents/guard-strict.md),
-  [`guard-normal.md`](agents/guard-normal.md),
-  [`guard-loose.md`](agents/guard-loose.md)). There is no generator; keep the floor in
+  ([`ask.md`](agents/ask.md),
+  [`normal.md`](agents/normal.md),
+  [`trust.md`](agents/trust.md)). There is no generator; keep the floor in
   sync by hand.
 - [`opencode.json`](opencode.json) — the overlay (`default_agent` + disable
   `build`/`plan`).

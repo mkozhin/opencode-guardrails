@@ -76,7 +76,7 @@
 }
 ---
 
-This agent only sets the confirmation-strictness level to **strict**: every tool
+This agent only sets the confirmation-strictness level to **ask**: every tool
 action asks for confirmation first, with one exception — the shared floor still
 applies. Hard secrets (`.env`, `*.pem`, `*.key`, SSH keys, credential files, …)
 are always **denied** rather than merely asked, `*.env.example` templates are

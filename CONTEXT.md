@@ -16,7 +16,7 @@ Glossary for `opencode-guardrails`. Terms only — no implementation details.
 ## Core concepts
 
 - **Level** — a named strictness setting for confirmations, realised as an opencode
-  *primary agent*. Three exist: `guard-strict`, `guard-normal`, `guard-loose`.
+  *primary agent*. Three exist: `ask`, `normal`, `trust`.
 - **Permission resolution** — the rule by which opencode turns a tool call + a set of
   glob patterns into an `allow`/`ask`/`deny` decision: **last-match-wins** (the last
   matching pattern in insertion order wins). The matcher is an anchored dotall regex
@@ -60,14 +60,14 @@ Glossary for `opencode-guardrails`. Terms only — no implementation details.
 
 ## Distribution
 
-- **Agent files** — the three `guard-*.md` files are **hand-written and committed
+- **Agent files** — the three level `.md` files (`ask`/`normal`/`trust`) are **hand-written and committed
   directly** (no generator, no `src/`→`dist/` split). Rationale: only three files with
   an identical floor block that rarely changes; a codegen pipeline plus CI-commits-to-
   `main` would cost more than it saves. Drift between the three is prevented by an
   **invariant test** asserting the floor block is byte-identical and appears last in
   the `read`/`bash` blocks of all three files.
 - **Overlay** — a small hand-written `opencode.json` holding only top-level config that
-  cannot live in an agent `.md` frontmatter: `default_agent: guard-normal` and
+  cannot live in an agent `.md` frontmatter: `default_agent: normal` and
   disabling the built-in `build`/`plan` agents.
 - **Overlay application** — the overlay is applied via config layering: it lives in a
   drop-in directory pointed at by the **`OPENCODE_CONFIG_DIR`** env var, and opencode
