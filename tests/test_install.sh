@@ -40,12 +40,12 @@ reset_home() { rm -rf "$FAKE_HOME"; mkdir -p "$FAKE_HOME"; }
 reset_home
 out="$(bash "$INSTALL" 2>&1)"; rc=$?
 check "global: exit 0 on clean install" "$([ "$rc" -eq 0 ] && echo 0 || echo 1)"
-check "global: normal.md landed in agent/ dir" \
-    "$([ -f "$AGENT_DEST/normal.md" ] && echo 0 || echo 1)"
-check "global: ask.md landed in agent/ dir" \
-    "$([ -f "$AGENT_DEST/ask.md" ] && echo 0 || echo 1)"
-check "global: trust.md landed in agent/ dir" \
-    "$([ -f "$AGENT_DEST/trust.md" ] && echo 0 || echo 1)"
+check "global: guard/normal.md landed in agent/guard/ dir" \
+    "$([ -f "$AGENT_DEST/guard/normal.md" ] && echo 0 || echo 1)"
+check "global: guard/ask.md landed in agent/guard/ dir" \
+    "$([ -f "$AGENT_DEST/guard/ask.md" ] && echo 0 || echo 1)"
+check "global: guard/trust.md landed in agent/guard/ dir" \
+    "$([ -f "$AGENT_DEST/guard/trust.md" ] && echo 0 || echo 1)"
 check "global: overlay placed in drop-in dir" \
     "$([ -f "$OVERLAY_DIR/opencode.json" ] && echo 0 || echo 1)"
 check "global: export command printed" \
@@ -62,7 +62,7 @@ check "global: re-run exits 0 (idempotent)" \
 check "global: re-run reports files unchanged" \
     "$(printf '%s' "$out" | grep -q 'unchanged:' && echo 0 || echo 1)"
 # Exactly three agent files, no duplicates/corruption.
-n_agents="$(find "$AGENT_DEST" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')"
+n_agents="$(find "$AGENT_DEST/guard" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')"
 check "global: exactly 3 agent files after re-run" \
     "$([ "$n_agents" -eq 3 ] && echo 0 || echo 1)"
 
@@ -74,8 +74,8 @@ out="$(cd "$PROJECT" && bash "$INSTALL" --project 2>&1)"; rc=$?
 check "project: exit 0" "$([ "$rc" -eq 0 ] && echo 0 || echo 1)"
 check "project: reports files installed" \
     "$(printf '%s' "$out" | grep -q 'installed:' && echo 0 || echo 1)"
-check "project: agents in ./.opencode/agent/" \
-    "$([ -f "$PROJECT/.opencode/agent/normal.md" ] && echo 0 || echo 1)"
+check "project: agents in ./.opencode/agent/guard/" \
+    "$([ -f "$PROJECT/.opencode/agent/guard/normal.md" ] && echo 0 || echo 1)"
 check "project: overlay in ./.opencode/opencode.json" \
     "$([ -f "$PROJECT/.opencode/opencode.json" ] && echo 0 || echo 1)"
 check "project: overlay matches source" \
@@ -83,18 +83,18 @@ check "project: overlay matches source" \
 
 # --- Case 4: pre-existing different agent file without --force --------------
 reset_home
-mkdir -p "$AGENT_DEST"
-printf 'DIFFERENT USER CONTENT\n' > "$AGENT_DEST/normal.md"
+mkdir -p "$AGENT_DEST/guard"
+printf 'DIFFERENT USER CONTENT\n' > "$AGENT_DEST/guard/normal.md"
 out="$(bash "$INSTALL" 2>&1)"; rc=$?
 check "conflict: non-zero exit when a differing file is present" \
     "$([ "$rc" -ne 0 ] && echo 0 || echo 1)"
 check "conflict: existing file NOT clobbered without --force" \
-    "$(grep -q 'DIFFERENT USER CONTENT' "$AGENT_DEST/normal.md" && echo 0 || echo 1)"
+    "$(grep -q 'DIFFERENT USER CONTENT' "$AGENT_DEST/guard/normal.md" && echo 0 || echo 1)"
 check "conflict: refusal reported" \
     "$(printf '%s' "$out" | grep -qi 'refused' && echo 0 || echo 1)"
 # The other, non-conflicting agents should still install.
 check "conflict: non-conflicting agent still installed" \
-    "$([ -f "$AGENT_DEST/ask.md" ] && echo 0 || echo 1)"
+    "$([ -f "$AGENT_DEST/guard/ask.md" ] && echo 0 || echo 1)"
 
 # --- Case 5: --force overwrites --------------------------------------------
 out="$(bash "$INSTALL" --force 2>&1)"; rc=$?
@@ -102,7 +102,7 @@ check "force: exit 0" "$([ "$rc" -eq 0 ] && echo 0 || echo 1)"
 check "force: reports differing file overwritten" \
     "$(printf '%s' "$out" | grep -q 'overwritten:' && echo 0 || echo 1)"
 check "force: differing file overwritten with ours" \
-    "$(cmp -s "$REPO_ROOT/agents/normal.md" "$AGENT_DEST/normal.md" && echo 0 || echo 1)"
+    "$(cmp -s "$REPO_ROOT/agents/normal.md" "$AGENT_DEST/guard/normal.md" && echo 0 || echo 1)"
 
 # --- Case 6: unknown flag ---------------------------------------------------
 reset_home
@@ -126,17 +126,17 @@ check "missing agents dir: clear error" \
 # A symlinked dest whose target is an unrelated file must never be written
 # through: cp -f would clobber the target. The installer removes/refuses instead.
 reset_home
-mkdir -p "$AGENT_DEST"
+mkdir -p "$AGENT_DEST/guard"
 PRECIOUS="$WORK/precious.txt"
 printf 'PRECIOUS DATA\n' > "$PRECIOUS"
-ln -s "$PRECIOUS" "$AGENT_DEST/normal.md"
+ln -s "$PRECIOUS" "$AGENT_DEST/guard/normal.md"
 out="$(bash "$INSTALL" --force 2>&1)"; rc=$?
 check "symlink: --force exits non-zero (symlink dest refused)" \
     "$([ "$rc" -ne 0 ] && echo 0 || echo 1)"
 check "symlink: symlink TARGET left intact under --force" \
     "$(grep -q 'PRECIOUS DATA' "$PRECIOUS" && echo 0 || echo 1)"
 check "symlink: dest is still a symlink (not clobbered)" \
-    "$([ -L "$AGENT_DEST/normal.md" ] && echo 0 || echo 1)"
+    "$([ -L "$AGENT_DEST/guard/normal.md" ] && echo 0 || echo 1)"
 check "symlink: symlink refusal reported" \
     "$(printf '%s' "$out" | grep -qi 'symlink' && echo 0 || echo 1)"
 
@@ -144,12 +144,12 @@ check "symlink: symlink refusal reported" \
 # cp into an existing directory would silently write inside it and report
 # success; the installer must detect a non-regular dest and error out.
 reset_home
-mkdir -p "$AGENT_DEST/normal.md"
+mkdir -p "$AGENT_DEST/guard/normal.md"
 out="$(bash "$INSTALL" 2>&1)"; rc=$?
 check "dir-dest: non-zero exit when dest is a directory" \
     "$([ "$rc" -ne 0 ] && echo 0 || echo 1)"
 check "dir-dest: dest stays an empty directory (nothing written inside)" \
-    "$([ -d "$AGENT_DEST/normal.md" ] && [ -z "$(ls -A "$AGENT_DEST/normal.md")" ] && echo 0 || echo 1)"
+    "$([ -d "$AGENT_DEST/guard/normal.md" ] && [ -z "$(ls -A "$AGENT_DEST/guard/normal.md")" ] && echo 0 || echo 1)"
 check "dir-dest: clear 'not a regular file' error" \
     "$(printf '%s' "$out" | grep -qi 'not a regular file' && echo 0 || echo 1)"
 

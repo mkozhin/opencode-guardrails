@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "default_agent": "normal",
+  "default_agent": "guard/normal",
   "agent": {
     "build": { "disable": true },
     "plan": { "disable": true }

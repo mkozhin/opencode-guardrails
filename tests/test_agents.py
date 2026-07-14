@@ -682,7 +682,7 @@ class TestArtifactValidity(unittest.TestCase):
     def test_overlay_valid(self):
         with open(OVERLAY_PATH, encoding="utf-8") as fh:
             data = validate_overlay(fh.read())
-        self.assertEqual(data["default_agent"], "normal")
+        self.assertEqual(data["default_agent"], "guard/normal")
         self.assertIn("build", data["agent"])
         self.assertIn("plan", data["agent"])
 

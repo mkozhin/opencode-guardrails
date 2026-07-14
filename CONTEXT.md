@@ -16,7 +16,11 @@ Glossary for `opencode-guardrails`. Terms only — no implementation details.
 ## Core concepts
 
 - **Level** — a named strictness setting for confirmations, realised as an opencode
-  *primary agent*. Three exist: `ask`, `normal`, `trust`.
+  *primary agent*. Three exist: `ask`, `normal`, `trust`. The installer places the
+  three level `.md` files into an `agent/guard/` subdirectory, and opencode names an
+  agent by its path below `agent/`, so their opencode names are `guard/ask` /
+  `guard/normal` / `guard/trust` and the default is `guard/normal`. The `guard/` subdir
+  is chosen so the whole set removes with a single `rm -rf .../agent/guard`.
 - **Permission resolution** — the rule by which opencode turns a tool call + a set of
   glob patterns into an `allow`/`ask`/`deny` decision: **last-match-wins** (the last
   matching pattern in insertion order wins). The matcher is an anchored dotall regex
@@ -61,13 +65,15 @@ Glossary for `opencode-guardrails`. Terms only — no implementation details.
 ## Distribution
 
 - **Agent files** — the three level `.md` files (`ask`/`normal`/`trust`) are **hand-written and committed
-  directly** (no generator, no `src/`→`dist/` split). Rationale: only three files with
+  directly** (no generator, no `src/`→`dist/` split; the repo folder stays flat as
+  `agents/ask.md` etc., only the install destination gains the `guard/` subdir).
+  Rationale: only three files with
   an identical floor block that rarely changes; a codegen pipeline plus CI-commits-to-
   `main` would cost more than it saves. Drift between the three is prevented by an
   **invariant test** asserting the floor block is byte-identical and appears last in
   the `read`/`bash` blocks of all three files.
 - **Overlay** — a small hand-written `opencode.json` holding only top-level config that
-  cannot live in an agent `.md` frontmatter: `default_agent: normal` and
+  cannot live in an agent `.md` frontmatter: `default_agent: guard/normal` and
   disabling the built-in `build`/`plan` agents.
 - **Overlay application** — the overlay is applied via config layering: it lives in a
   drop-in directory pointed at by the **`OPENCODE_CONFIG_DIR`** env var, and opencode

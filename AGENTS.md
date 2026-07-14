@@ -14,6 +14,11 @@ active plan is the single source of requirements; check it before implementing.
 - **The three `agents/*.md` level files (`ask`/`normal`/`trust`) and the `opencode.json` overlay are
   hand-written and committed directly.** There is NO generator and NO `src/`→`dist/`
   split — a codegen pipeline for three rarely-changing files is not worth its cost.
+- **The repo's `agents/` folder stays flat** (`agents/ask.md` etc.), but the installer
+  copies the three files into an `agent/guard/` subdirectory of opencode's config.
+  opencode names an agent by its path below `agent/`, so their opencode names are
+  `guard/ask` / `guard/normal` / `guard/trust`, the overlay's `default_agent` is
+  `guard/normal`, and the whole set removes with one `rm -rf .../agent/guard`.
 - **The floor is appended LAST** in each level's `read`/`bash` blocks (last-match-wins,
   confirmed by opencode docs). It must be **byte-identical across all three files** — an
   invariant test enforces this; keep the three in sync by hand when editing the floor.

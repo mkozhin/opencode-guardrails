@@ -24,6 +24,13 @@ SRC_OVERLAY="$SCRIPT_DIR/opencode.json"
 # opencode 1.17.18, both for the global config dir and for OPENCODE_CONFIG_DIR).
 AGENT_SUBDIR="agent"
 
+# The level agents install into a "guard/" subdirectory of agent/. opencode loads
+# agents recursively, so an agent at agent/guard/normal.md is named "guard/normal"
+# (the path under agent/ becomes the name; verified on opencode 1.17.18). Grouping
+# the set under one subdir lets a user remove everything with a single
+# `rm -rf .../agent/guard`.
+AGENT_NS="guard"
+
 PROG="$(basename "$0")"
 
 MODE="global"
@@ -178,7 +185,7 @@ if [ "$MODE" = "global" ]; then
         err "cannot determine config dir: neither XDG_CONFIG_HOME nor HOME is set"
         exit 1
     fi
-    AGENTS_DEST="$CONFIG_BASE/opencode/$AGENT_SUBDIR"
+    AGENTS_DEST="$CONFIG_BASE/opencode/$AGENT_SUBDIR/$AGENT_NS"
     OVERLAY_DIR="$CONFIG_BASE/opencode-guardrails"
     OVERLAY_DEST="$OVERLAY_DIR/opencode.json"
 
@@ -207,7 +214,7 @@ if [ "$MODE" = "global" ]; then
     # again so the printed `echo …` appends a correctly-quoted line to the profile.
     OVERLAY_Q="$(shell_squote "$OVERLAY_DIR")"
     OVERLAY_ECHO="$(shell_squote "export OPENCODE_CONFIG_DIR=$OVERLAY_Q")"
-    log "To ACTIVATE the overlay (normal as default, build/plan disabled),"
+    log "To ACTIVATE the overlay (guard/normal as default, build/plan disabled),"
     log "export OPENCODE_CONFIG_DIR so opencode loads the drop-in as an extra layer:"
     log ""
     log "    export OPENCODE_CONFIG_DIR=$OVERLAY_Q"
@@ -224,10 +231,14 @@ if [ "$MODE" = "global" ]; then
     log ""
     log "FALLBACK (agents only): if you never export OPENCODE_CONFIG_DIR, the three"
     log "the three level agents are still installed and selectable, but build/plan stay in the"
-    log "Tab cycle and normal is NOT the default."
+    log "Tab cycle and guard/normal is NOT the default."
+    log ""
+    log "To REMOVE everything cleanly:"
+    log "    rm -rf $(shell_squote "$AGENTS_DEST")"
+    log "    rm -rf $(shell_squote "$OVERLAY_DIR")"
 else
     PROJECT_DIR="$PWD/.opencode"
-    AGENTS_DEST="$PROJECT_DIR/$AGENT_SUBDIR"
+    AGENTS_DEST="$PROJECT_DIR/$AGENT_SUBDIR/$AGENT_NS"
     OVERLAY_DEST="$PROJECT_DIR/opencode.json"
 
     install_agents "$AGENTS_DEST"
@@ -245,7 +256,7 @@ else
         else
             warn "  refused: $OVERLAY_DEST already exists and differs."
             warn "  Not clobbering your project config. Merge these keys by hand:"
-            warn '      "default_agent": "normal",'
+            warn '      "default_agent": "guard/normal",'
             warn '      "agent": { "build": { "disable": true }, "plan": { "disable": true } }'
             warn "  Or re-run with --force to replace the file entirely."
             REFUSED=1
@@ -261,6 +272,9 @@ else
     fi
     log "Installed into the project layer. The overlay applies automatically for this"
     log "project (project layer wins over the global/custom layers) — no env var needed."
+    log ""
+    log "To REMOVE the level agents cleanly:"
+    log "    rm -rf $(shell_squote "$AGENTS_DEST")"
 fi
 
 if [ "$REFUSED" -eq 1 ]; then

@@ -21,9 +21,17 @@ confirmations are** — and exposes it as three interchangeable agents:
 | `trust`        | Boldest. Almost everything runs; secrets and dangerous shell guard. |
 
 They are ordinary opencode primary agents, so they appear in the **Tab** cycle. The
-overlay (see [Installation](#installation)) makes `normal` the default and hides
+overlay (see [Installation](#installation)) makes `guard/normal` the default and hides
 `build`/`plan`, so the Tab cycle becomes exactly these three levels. None of them
 change the model's behaviour or persona — they set **only** the confirmation level.
+
+> **Installed names.** The installer places the three agents under a `guard/`
+> subdirectory of opencode's `agent/` dir, and opencode names an agent by its path
+> below `agent/`. So in the Tab cycle they appear as `guard/ask` / `guard/normal` /
+> `guard/trust`, and the default is `guard/normal`. The short labels `ask` / `normal` /
+> `trust` are used throughout this document as the **level** names. Grouping under one
+> subdir means the whole set removes with a single `rm -rf .../agent/guard` (see
+> [Uninstall](#uninstall)).
 
 ## Levels
 
@@ -123,12 +131,14 @@ the clone can be deleted afterwards (keep it only to `git pull` updates and re-i
 ./install.sh
 ```
 
-This copies the three level `.md` files (`ask.md`/`normal.md`/`trust.md`) into your global opencode agent directory
-(`${XDG_CONFIG_HOME:-~/.config}/opencode/agent/`, from which opencode always loads
-them) and places the [`opencode.json`](opencode.json) overlay into a separate drop-in
-directory (`${XDG_CONFIG_HOME:-~/.config}/opencode-guardrails/`).
+This copies the three level `.md` files (`ask.md`/`normal.md`/`trust.md`) into a
+`guard/` subdirectory of your global opencode agent directory
+(`${XDG_CONFIG_HOME:-~/.config}/opencode/agent/guard/`, from which opencode always loads
+them — the `guard/` subdir prefixes their names to `guard/ask` / `guard/normal` /
+`guard/trust`) and places the [`opencode.json`](opencode.json) overlay into a separate
+drop-in directory (`${XDG_CONFIG_HOME:-~/.config}/opencode-guardrails/`).
 
-The overlay (`default_agent: normal` + disabling `build`/`plan`) is activated by
+The overlay (`default_agent: guard/normal` + disabling `build`/`plan`) is activated by
 pointing opencode at that drop-in directory with **`OPENCODE_CONFIG_DIR`**. A script
 **cannot** export an env var into your parent shell, so `install.sh` **prints the exact
 command** instead:
@@ -161,7 +171,7 @@ Skip `OPENCODE_CONFIG_DIR` entirely and put the two overlay keys straight into y
 1. Install just the agents (they load automatically, no env var needed):
 
    ```sh
-   ./install.sh   # copies ask.md/normal.md/trust.md into ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/
+   ./install.sh   # copies ask.md/normal.md/trust.md into ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/guard/
    ```
 
    You can ignore the `OPENCODE_CONFIG_DIR` command it prints — this method does not use
@@ -175,7 +185,7 @@ Skip `OPENCODE_CONFIG_DIR` entirely and put the two overlay keys straight into y
    ```jsonc
    {
      "$schema": "https://opencode.ai/config.json",
-     "default_agent": "normal",
+     "default_agent": "guard/normal",
      "agent": {
        "build": { "disable": true },
        "plan": { "disable": true }
@@ -184,7 +194,7 @@ Skip `OPENCODE_CONFIG_DIR` entirely and put the two overlay keys straight into y
    ```
 
 opencode has **no `config set` command** — this file is edited by hand. Because it is the
-global layer opencode always reads, `normal` becomes the default and `build`/`plan`
+global layer opencode always reads, `guard/normal` becomes the default and `build`/`plan`
 leave the Tab cycle in every terminal, with no env var and no `.bashrc` edit. The same
 precedence caveat applies: a **project** `opencode.json` still overrides the global layer.
 
@@ -199,7 +209,7 @@ cd /path/to/your-project
 /path/to/opencode-guardrails/install.sh --project
 ```
 
-Writes the agents into `./.opencode/agent/` and the overlay into
+Writes the agents into `./.opencode/agent/guard/` and the overlay into
 `./.opencode/opencode.json` — the **project layer**, which wins over global/custom, so
 the overlay applies automatically for that project with **no env var to export**. If a
 project `opencode.json` already exists and differs, the installer refuses to clobber it
@@ -207,13 +217,28 @@ and prints the keys to merge by hand (or re-run with `--force`).
 
 ### Fallback — agents only
 
-If you never export `OPENCODE_CONFIG_DIR` (global mode), the three agents (`ask`/`normal`/`trust`) are
-still installed and selectable — but **`build`/`plan` stay in the Tab cycle** and
-`normal` is **not** the default. This is a valid, lighter-touch setup; you just
-switch to a level manually.
+If you never export `OPENCODE_CONFIG_DIR` (global mode), the three agents
+(`guard/ask`/`guard/normal`/`guard/trust`) are still installed and selectable — but
+**`build`/`plan` stay in the Tab cycle** and `guard/normal` is **not** the default. This
+is a valid, lighter-touch setup; you just switch to a level manually.
 
 `install.sh` is idempotent, never overwrites a differing file without `--force`, and
 prints all of the above (activation command, precedence caveat, fallback) at the end.
+
+## Uninstall
+
+The three level agents live under a single `guard/` subdirectory precisely so the whole
+set removes in one command. In **global** mode:
+
+```sh
+rm -rf "${XDG_CONFIG_HOME:-~/.config}/opencode/agent/guard"      # the level agents
+rm -rf "${XDG_CONFIG_HOME:-~/.config}/opencode-guardrails"       # the overlay drop-in
+```
+
+Also drop the `export OPENCODE_CONFIG_DIR=…` line from your shell profile if you added
+it. In **`--project`** mode, remove `./.opencode/agent/guard` (and the overlay
+`./.opencode/opencode.json` if you no longer want it). `install.sh` prints the exact
+removal command for the paths it computed at the end of each run.
 
 ## Compatibility
 

@@ -21,9 +21,17 @@ opencode поставляет двух primary-агентов (`build`, `plan`),
 | `trust`        | Самый смелый. Почти всё выполняется; секреты и опасный shell под охраной. |
 
 Это обычные primary-агенты opencode, поэтому они попадают в цикл **Tab**. Overlay (см.
-[Установку](#установка)) делает `normal` дефолтным и убирает `build`/`plan`, так что
+[Установку](#установка)) делает `guard/normal` дефолтным и убирает `build`/`plan`, так что
 цикл Tab становится ровно этими тремя уровнями. Ни один из них не меняет поведение или
 персону модели — они задают **только** уровень подтверждений.
+
+> **Установленные имена.** Установщик кладёт трёх агентов в подкаталог `guard/`
+> директории `agent/` opencode, а opencode именует агента по его пути ниже `agent/`.
+> Поэтому в цикле Tab они появляются как `guard/ask` / `guard/normal` / `guard/trust`,
+> а дефолт — `guard/normal`. Короткие метки `ask` / `normal` / `trust` используются во
+> всём этом документе как имена **уровней**. Группировка под одним подкаталогом
+> означает, что весь набор удаляется одной командой `rm -rf .../agent/guard` (см.
+> [Удаление](#удаление)).
 
 ## Уровни
 
@@ -123,12 +131,14 @@ opencode внутри **OS-sandbox** — Linux namespaces / seccomp / Landlock, 
 ./install.sh
 ```
 
-Это копирует три файла уровней `.md` (`ask.md`/`normal.md`/`trust.md`) в глобальную директорию агентов opencode
-(`${XDG_CONFIG_HOME:-~/.config}/opencode/agent/`, откуда opencode всегда их грузит) и
-кладёт overlay [`opencode.json`](opencode.json) в отдельную drop-in-директорию
+Это копирует три файла уровней `.md` (`ask.md`/`normal.md`/`trust.md`) в подкаталог
+`guard/` глобальной директории агентов opencode
+(`${XDG_CONFIG_HOME:-~/.config}/opencode/agent/guard/`, откуда opencode всегда их
+грузит — подкаталог `guard/` даёт им имена `guard/ask` / `guard/normal` / `guard/trust`)
+и кладёт overlay [`opencode.json`](opencode.json) в отдельную drop-in-директорию
 (`${XDG_CONFIG_HOME:-~/.config}/opencode-guardrails/`).
 
-Overlay (`default_agent: normal` + отключение `build`/`plan`) активируется указанием
+Overlay (`default_agent: guard/normal` + отключение `build`/`plan`) активируется указанием
 opencode на эту drop-in-директорию через **`OPENCODE_CONFIG_DIR`**. Скрипт **не может**
 экспортировать env-переменную в родительский shell, поэтому `install.sh` вместо этого
 **печатает точную команду**:
@@ -161,7 +171,7 @@ opencode *мерджит* слои конфига, а не подменяет и
 1. Установите только агентов (грузятся автоматически, переменная не нужна):
 
    ```sh
-   ./install.sh   # копирует ask.md/normal.md/trust.md в ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/
+   ./install.sh   # копирует ask.md/normal.md/trust.md в ${XDG_CONFIG_HOME:-~/.config}/opencode/agent/guard/
    ```
 
    Напечатанную команду `OPENCODE_CONFIG_DIR` можно проигнорировать — этот способ не
@@ -175,7 +185,7 @@ opencode *мерджит* слои конфига, а не подменяет и
    ```jsonc
    {
      "$schema": "https://opencode.ai/config.json",
-     "default_agent": "normal",
+     "default_agent": "guard/normal",
      "agent": {
        "build": { "disable": true },
        "plan": { "disable": true }
@@ -184,7 +194,7 @@ opencode *мерджит* слои конфига, а не подменяет и
    ```
 
 У opencode **нет команды `config set`** — этот файл правится руками. Поскольку это
-глобальный слой, который opencode читает всегда, `normal` становится дефолтным, а
+глобальный слой, который opencode читает всегда, `guard/normal` становится дефолтным, а
 `build`/`plan` уходят из Tab-цикла во всех терминалах — без env-переменной и без правки
 `.bashrc`. Оговорка про precedence та же: **project**-`opencode.json` всё равно
 переопределяет глобальный слой.
@@ -200,7 +210,7 @@ cd /path/to/ваш-проект
 /path/to/opencode-guardrails/install.sh --project
 ```
 
-Пишет агентов в `./.opencode/agent/`, а overlay — в `./.opencode/opencode.json`, то есть в
+Пишет агентов в `./.opencode/agent/guard/`, а overlay — в `./.opencode/opencode.json`, то есть в
 **project-слой**, который выигрывает у global/custom, так что overlay применяется
 автоматически для этого проекта **без экспорта env-переменной**. Если project-`opencode.json`
 уже существует и отличается, установщик отказывается его затирать и печатает ключи для
@@ -209,12 +219,27 @@ cd /path/to/ваш-проект
 ### Fallback — только агенты
 
 Если вы никогда не экспортируете `OPENCODE_CONFIG_DIR` (в глобальном режиме), три агента
-(`ask`/`normal`/`trust`) всё равно установлены и доступны для выбора — но **`build`/`plan` остаются в цикле
-Tab**, а `normal` **не** становится дефолтом. Это валидная, более лёгкая установка;
-вы просто переключаете уровень вручную.
+(`guard/ask`/`guard/normal`/`guard/trust`) всё равно установлены и доступны для выбора — но
+**`build`/`plan` остаются в цикле Tab**, а `guard/normal` **не** становится дефолтом. Это
+валидная, более лёгкая установка; вы просто переключаете уровень вручную.
 
 `install.sh` идемпотентен, никогда не перезаписывает отличающийся файл без `--force` и
 печатает всё вышеописанное (команду активации, оговорку про precedence, fallback) в конце.
+
+## Удаление
+
+Три агента уровней живут под единым подкаталогом `guard/` именно ради того, чтобы весь
+набор удалялся одной командой. В **глобальном** режиме:
+
+```sh
+rm -rf "${XDG_CONFIG_HOME:-~/.config}/opencode/agent/guard"      # агенты уровней
+rm -rf "${XDG_CONFIG_HOME:-~/.config}/opencode-guardrails"       # drop-in overlay
+```
+
+Также уберите строку `export OPENCODE_CONFIG_DIR=…` из shell-профиля, если добавляли её.
+В режиме **`--project`** удалите `./.opencode/agent/guard` (и overlay
+`./.opencode/opencode.json`, если он больше не нужен). `install.sh` печатает точную
+команду удаления для вычисленных путей в конце каждого запуска.
 
 ## Совместимость
 
