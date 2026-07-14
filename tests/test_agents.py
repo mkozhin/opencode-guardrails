@@ -522,21 +522,21 @@ class TestRealPathMatrix(unittest.TestCase):
             self.assertEqual(resolve(read, path), "allow", path)
 
 
-class TestStrictLooseReadMatrix(unittest.TestCase):
+class TestAskTrustReadMatrix(unittest.TestCase):
     """The floor is byte-identical across levels, but the level's own read
-    catch-all differs (strict=ask, loose=allow). Assert the floor still wins
-    for secrets on BOTH, and that the catch-all governs non-secret reads."""
+    catch-all differs (ask level -> ask, trust level -> allow). Assert the floor
+    still wins for secrets on BOTH, and that the catch-all governs non-secret reads."""
 
-    def test_strict_secrets_deny_non_secret_ask(self):
+    def test_ask_level_secrets_deny_non_secret_ask(self):
         read = load_level_permission("ask")["read"]
         for path in _DENY:
             self.assertEqual(resolve(read, path), "deny", path)
         for path in _ALLOW_NORMAL_AND_NEGATIVES:
-            # strict catch-all is "ask" -> ordinary/negative reads prompt,
+            # the ask level's catch-all is "ask" -> ordinary/negative reads prompt,
             # they are NOT falsely denied by the floor.
             self.assertEqual(resolve(read, path), "ask", path)
 
-    def test_loose_secrets_deny_non_secret_allow(self):
+    def test_trust_secrets_deny_non_secret_allow(self):
         read = load_level_permission("trust")["read"]
         for path in _DENY:
             self.assertEqual(resolve(read, path), "deny", path)
@@ -548,7 +548,7 @@ class TestStrictLooseReadMatrix(unittest.TestCase):
 # RED until Task 4: dangerous-bash floor matrix through resolve().
 # ===========================================================================
 
-# Commands the dangerous-bash floor MUST flag (ask) even on loose.
+# Commands the dangerous-bash floor MUST flag (ask) even on trust.
 _BASH_ASK = (
     "git push", "git push origin main", "git push --force",
     "rm foo", "rm -rf /", "rm -rf node_modules",

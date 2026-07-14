@@ -30,7 +30,7 @@ change the model's behaviour or persona — they set **only** the confirmation l
 Each level is a matrix of opencode permissions (`allow` / `ask` / `deny`) over the
 tools. The catch-all `"*"` is set explicitly per level; specific tools override it.
 
-| Tool                              | strict | normal (default) | loose |
+| Tool                              | ask    | normal (default) | trust |
 |-----------------------------------|:------:|:----------------:|:-----:|
 | `"*"` (catch-all)                 | ask    | ask              | allow |
 | `read`                            | ask †  | allow †          | allow † |
@@ -66,8 +66,8 @@ agent files** (an invariant test enforces this).
   ordinary docs like `credentials-guide.md` or `secrets-overview.md` are *not* denied.
   A carve-out for `*.env.example` (appended last) keeps templates readable. Because the
   floor is byte-identical across levels, both the `deny` tier and this carve-out apply
-  even on `strict`: hard secrets are denied and `.env.example` is auto-allowed at every
-  level, so `strict`'s "ask about everything" is really "ask about everything the floor
+  even on `ask`: hard secrets are denied and `.env.example` is auto-allowed at every
+  level, so `ask`'s "ask about everything" is really "ask about everything the floor
   does not already decide".
 - **Other hidden files → `ask` (on `read`).** Dot-named files (`.*`, `*/.*`, e.g.
   `.gitignore`, `.eslintrc`) prompt for confirmation. This tier is *conditional*:
@@ -75,7 +75,7 @@ agent files** (an invariant test enforces this).
 - **Dangerous bash → `ask` (best-effort).** Common direct forms — `git push*`,
   `rm *`, `git reset --hard*`, `curl … | sh` — plus best-effort secret **reads**
   through the shell (`cat` / `less` / `head` / `tail` of `*.env` / `*.env.*` /
-  `*.pem` / `*.key`, e.g. `cat .env`) — prompt even on `loose`. This is
+  `*.pem` / `*.key`, e.g. `cat .env`) — prompt even on `trust`. This is
   best-effort only: chaining, variables and obfuscation bypass it (`c=cat; $c .env`),
   and it covers the four common readers on the env/pem/key file classes, not every
   reader or every secret name (see [Known limitations](#known-limitations)).
@@ -229,7 +229,7 @@ particular are version-sensitive (see below).
 Being honest about what the floor does **not** cover:
 
 - **`grep` / `glob` do not honor the `read` secret-deny.** Their permission matches the
-  *search pattern*, not the file paths returned, so a `grep` on `normal`/`loose` can
+  *search pattern*, not the file paths returned, so a `grep` on `normal`/`trust` can
   surface secret contents. The strong `deny` guarantee applies to **`read` only**.
 - **bash matching is whole-string, best-effort.** On 1.17.18 the bash permission
   matches the *entire command string* (the tree-sitter parser is not yet ported). So
