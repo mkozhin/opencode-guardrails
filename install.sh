@@ -245,7 +245,10 @@ if [ "$MODE" = "global" ]; then
     log "agents are still installed and selectable, but build/plan stay in the Tab cycle"
     log "and guard/normal is NOT the default."
     log ""
-    log "To REMOVE everything cleanly:"
+    log "To REMOVE everything cleanly, run the uninstaller (removes the whole"
+    log "agent/guard dir and the overlay drop-in; keeps sibling agents):"
+    log "    ./uninstall.sh"
+    log "Equivalent manual removal:"
     log "    rm -rf $(shell_squote "$AGENTS_DEST")"
     log "    rm -rf $(shell_squote "$OVERLAY_DIR")"
 else
@@ -285,7 +288,10 @@ else
     log "Installed into the project layer. The overlay applies automatically for this"
     log "project (project layer wins over the global/custom layers) — no env var needed."
     log ""
-    log "To REMOVE the level agents cleanly:"
+    log "To REMOVE the level agents cleanly, run the uninstaller (removes the whole"
+    log "agent/guard dir; leaves a differing project overlay untouched):"
+    log "    ./uninstall.sh --project"
+    log "Equivalent manual removal:"
     log "    rm -rf $(shell_squote "$AGENTS_DEST")"
 fi
 

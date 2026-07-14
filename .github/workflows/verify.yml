@@ -26,6 +26,9 @@ jobs:
       - name: Run install shell test
         run: bash tests/test_install.sh
 
+      - name: Run uninstall shell test
+        run: bash tests/test_uninstall.sh
+
       # shellcheck is preinstalled on GitHub ubuntu-latest runners.
       - name: Shellcheck
-        run: shellcheck install.sh tests/test_install.sh
+        run: shellcheck install.sh uninstall.sh tests/test_install.sh tests/test_uninstall.sh

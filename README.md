@@ -227,18 +227,35 @@ prints all of the above (activation command, precedence caveat, fallback) at the
 
 ## Uninstall
 
-The three level agents live under a single `guard/` subdirectory precisely so the whole
-set removes in one command. In **global** mode:
+The clean way is the uninstaller, which mirrors `install.sh`'s modes:
+
+```sh
+./uninstall.sh              # global mode
+./uninstall.sh --project    # project mode
+```
+
+It removes the **whole `agent/guard/` directory** (so it survives renames and newly
+added files inside), plus the overlay drop-in (`opencode-guardrails/` in global mode),
+but it **never touches sibling agents** in the parent `agent/` directory. In
+`--project` mode it removes `./.opencode/opencode.json` only if it is byte-identical to
+ours; a differing (your own/merged) overlay is left untouched unless you pass `--force`.
+
+What the uninstaller **cannot** do: it does not unset `OPENCODE_CONFIG_DIR` from your
+shell profile (drop that `export …` line yourself if you added it), and it does not
+remove `default_agent` / `agent.build` / `agent.plan` keys you merged into your **global**
+`opencode.json` by hand.
+
+The level agents live under a single `guard/` subdirectory precisely so the whole set
+also removes with one manual command. In **global** mode the equivalent is:
 
 ```sh
 rm -rf "${XDG_CONFIG_HOME:-~/.config}/opencode/agent/guard"      # the level agents
 rm -rf "${XDG_CONFIG_HOME:-~/.config}/opencode-guardrails"       # the overlay drop-in
 ```
 
-Also drop the `export OPENCODE_CONFIG_DIR=…` line from your shell profile if you added
-it. In **`--project`** mode, remove `./.opencode/agent/guard` (and the overlay
-`./.opencode/opencode.json` if you no longer want it). `install.sh` prints the exact
-removal command for the paths it computed at the end of each run.
+In **`--project`** mode the equivalent is removing `./.opencode/agent/guard` (and the
+overlay `./.opencode/opencode.json` if you no longer want it). `install.sh` prints the
+exact removal command for the paths it computed at the end of each run.
 
 ## Compatibility
 
